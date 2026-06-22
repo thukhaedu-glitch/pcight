@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -489,7 +490,7 @@ function spPerPc(salePrice,qty,country){if(!qty)return 0;return (Number(salePric
 function lineProfit(l,country){return (Number(l.salePrice)/vatDiv(country))-(Number(l.cpPerPc)*Number(l.qty));}
 function orderTotals(o){
   let qty=0,amount=0,cost=0,exvat=0;const div=vatDiv(o.country);
-  o.lines.forEach(l=>{const q=Number(l.qty)||0,sp=Number(l.salePrice)||0;qty+=q;amount+=sp;cost+=(Number(l.cpPerPc)||0)*q;exvat+=sp/div;});
+  (o.lines||[]).forEach(l=>{const q=Number(l.qty)||0,sp=Number(l.salePrice)||0;qty+=q;amount+=sp;cost+=(Number(l.cpPerPc)||0)*q;exvat+=sp/div;});
   return{qty,amount,cost,exvat,vat:amount-exvat,profit:exvat-cost};
 }
 
@@ -683,9 +684,18 @@ function runFind(){
   const out=document.getElementById("findResults");
   if(!raw){out.innerHTML="";return;}
   const ids=raw.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
-  const found=orders.filter(o=>ids.some(q=>o.id.toLowerCase()===q||o.id.toLowerCase().includes(q)));
-  if(!found.length){out.innerHTML=`<div class="empty panel"><b>No matches</b>No saved order matches “${esc(raw)}”.</div>`;return;}
-  out.innerHTML=found.map(o=>orderBlock(o,false)).join("");
+  let found=[];
+  try{
+    found=orders.filter(o=>{
+      const id=String(o.id||"").toLowerCase();
+      const cust=String(o.customerName||"").toLowerCase();
+      const bars=(o.lines||[]).map(l=>String(l.barcode||"").toLowerCase());
+      return ids.some(q=> id===q || id.includes(q) || cust.includes(q) || bars.some(b=>b.includes(q)));
+    });
+  }catch(e){out.innerHTML=`<div class="empty panel"><b>Search error</b>${esc(e.message)}</div>`;return;}
+  if(!found.length){out.innerHTML=`<div class="empty panel"><b>No matches</b>Nothing matches “${esc(raw)}”. Try the full Noon order number, a barcode, or a customer name.</div>`;return;}
+  out.innerHTML=`<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">${found.length} order${found.length>1?"s":""} found</div>`+found.map(o=>{try{return orderBlock(o,true);}catch(e){return `<div class="orec"><div class="orec-h"><span class="oid">${esc(o.id||"?")}</span><span class="meta" style="color:var(--neg)">could not render</span></div></div>`;}}).join("");
+  out.querySelectorAll(".orec").forEach(el=>el.classList.add("open"));
   bindOrecToggles(out);
 }
 
@@ -748,6 +758,7 @@ function makeMultiSelect(mountId,label,state,getOpts,onChange){
 const dashCountrySet=new Set(),dashCustSet=new Set(),recCountrySet=new Set(),recCustSet=new Set();
 
 function orderBlock(o,withActions){
+  if(!o.lines)o.lines=[];
   const t=orderTotals(o);
   const rows=o.lines.map((l,i)=>`<tr>
     <td class="num">${i+1}</td>
@@ -813,18 +824,22 @@ function renderRecords(){
   list.innerHTML=fo.map(o=>orderBlock(o,true)).join("");
   bindOrecToggles(list);
 }
-document.getElementById("recList").addEventListener("click",e=>{
-  const id=e.target.dataset.id;if(!id)return;
-  const o=orders.find(x=>x.id===id);if(!o)return;
-  if(e.target.classList.contains("d-paid")){
-    const ref=prompt("Payment reference / transfer ID for "+id+":","");
-    if(ref===null)return;o.status="paid";o.refId=ref.trim();save();Cloud.setO(o);renderRecords();toast("Marked paid.");
-  }
-  if(e.target.classList.contains("d-unpaid")){o.status="pending";o.refId="";save();Cloud.setO(o);renderRecords();toast("Set to pending.");}
-  if(e.target.classList.contains("d-del")){if(confirm("Delete order "+id+"? This cannot be undone.")){orders=orders.filter(x=>x.id!==id);save();Cloud.delO(id);renderRecords();toast("Order deleted.");}}
-  if(e.target.classList.contains("d-edit")){openEdit(o);}
-  if(e.target.classList.contains("d-copy")){copyOneOrder(o);}
-});
+function orderActionHandler(rerender){
+  return e=>{
+    const id=e.target.dataset.id;if(!id)return;
+    const o=orders.find(x=>x.id===id);if(!o)return;
+    if(e.target.classList.contains("d-paid")){
+      const ref=prompt("Payment reference / transfer ID for "+id+":","");
+      if(ref===null)return;o.status="paid";o.refId=ref.trim();save();Cloud.setO(o);rerender();toast("Marked paid.");
+    }
+    if(e.target.classList.contains("d-unpaid")){o.status="pending";o.refId="";save();Cloud.setO(o);rerender();toast("Set to pending.");}
+    if(e.target.classList.contains("d-del")){if(confirm("Delete order "+id+"? This cannot be undone.")){orders=orders.filter(x=>x.id!==id);save();Cloud.delO(id);rerender();toast("Order deleted.");}}
+    if(e.target.classList.contains("d-edit")){openEdit(o);}
+    if(e.target.classList.contains("d-copy")){copyOneOrder(o);}
+  };
+}
+document.getElementById("recList").addEventListener("click",orderActionHandler(renderRecords));
+document.getElementById("findResults").addEventListener("click",orderActionHandler(runFind));
 
 /* ================= EDIT MODAL ================= */
 let editId=null,editDraft=null;
