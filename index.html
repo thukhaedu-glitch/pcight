@@ -99,6 +99,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .pos{color:var(--pos);font-weight:600}
 .neg{color:var(--neg);font-weight:600}
 .empty{padding:38px 20px;text-align:center;color:var(--faint)}
+.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--faint);text-align:center}
 .empty b{display:block;color:var(--muted);font-family:var(--disp);font-weight:600;margin-bottom:4px;font-size:14px}
 
 /* list rows (products/customers) */
@@ -973,14 +974,29 @@ function renderDash(){
   drawCharts(custArr,cArr);
 }
 
+function showChartMsg(id,html){
+  const c=document.getElementById(id);if(!c)return;
+  c.style.display="none";
+  let m=c.parentElement.querySelector(".chart-empty");
+  if(!m){m=document.createElement("div");m.className="chart-empty";c.parentElement.appendChild(m);}
+  m.innerHTML=html;m.style.display="flex";
+}
+function showChartCanvas(id){
+  const c=document.getElementById(id);if(!c)return null;
+  c.style.display="";
+  const m=c.parentElement.querySelector(".chart-empty");if(m)m.style.display="none";
+  return c;
+}
+function blankChart(id){showChartMsg(id,'<b style="color:var(--muted)">No data yet</b>Save orders to see this chart.');}
+
 function drawCharts(custArr,cArr){
-  if(typeof Chart==="undefined"){document.querySelectorAll("#chartCust,#chartCountry").forEach(c=>{c.parentElement.innerHTML='<div class="empty"><b>Charts need internet</b>Open online to load chart library.</div>';});return;}
+  if(typeof Chart==="undefined"){["chartCust","chartCountry"].forEach(id=>showChartMsg(id,'<b style="color:var(--muted)">Charts need internet</b>Open online to load chart library.'));return;}
   destroyCharts();
   Chart.defaults.font.family=CHART_FONT;Chart.defaults.font.size=12;Chart.defaults.color="#6C7180";
   // customers compared (sales vs profit) — top 6 by sales
   const cust=custArr.slice(0,6);
   if(cust.length){
-    _chCust=new Chart(document.getElementById("chartCust"),{type:"bar",
+    _chCust=new Chart(showChartCanvas("chartCust"),{type:"bar",
       data:{labels:cust.map(c=>c.name),datasets:[
         {label:"Sales",data:cust.map(c=>+c.amount.toFixed(2)),backgroundColor:"#2C5C8F",borderRadius:5},
         {label:"Profit",data:cust.map(c=>+c.profit.toFixed(2)),backgroundColor:"#1F7A4D",borderRadius:5}]},
@@ -989,12 +1005,11 @@ function drawCharts(custArr,cArr){
   }else blankChart("chartCust");
   // sales by country donut
   if(cArr.length){
-    _chCountry=new Chart(document.getElementById("chartCountry"),{type:"doughnut",
+    _chCountry=new Chart(showChartCanvas("chartCountry"),{type:"doughnut",
       data:{labels:cArr.map(c=>c.country),datasets:[{data:cArr.map(c=>+c.amount.toFixed(2)),backgroundColor:PIE_COLORS,borderColor:"#fff",borderWidth:2}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:"58%",plugins:{legend:{position:"right"}}}});
   }else blankChart("chartCountry");
 }
-function blankChart(id){const c=document.getElementById(id);if(c)c.parentElement.innerHTML='<div class="empty"><b>No data yet</b>Save orders to see this chart.</div>';}
 
 /* ================= EXCEL / CSV EXPORT ================= */
 function dlFile(name,content,type){
