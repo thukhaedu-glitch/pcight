@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -422,7 +423,15 @@ const VAT=1.05;
 let products=Store.get("nod_products",[]);
 let customers=Store.get("nod_customers",[]);
 let orders=Store.get("nod_orders",[]);
-orders.forEach(o=>{if(o.country===undefined)o.country="UAE";}); // older orders kept VAT-removed
+function ensureIds(arr){let ch=false;(arr||[]).forEach(x=>{if(x&&(x.id==null||x.id==="")){x.id=uid();ch=true;}});return ch;}
+function migrate(){
+  let ch=false;
+  ch=ensureIds(products)||ch;
+  ch=ensureIds(customers)||ch;
+  ch=ensureIds(orders)||ch;
+  (orders||[]).forEach(o=>{if(o.country===undefined){o.country="UAE";ch=true;}if(!Array.isArray(o.lines)){o.lines=[];ch=true;}});
+  if(ch)save();
+}
 
 const save=()=>{Store.set("nod_products",products);Store.set("nod_customers",customers);Store.set("nod_orders",orders);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -567,10 +576,10 @@ document.getElementById("addOrderBtn").addEventListener("click",newOrderCard);
 
 function dupSet(){
   const counts={};
-  draft.forEach(o=>{const id=o.orderId.trim().toLowerCase();if(id)counts[id]=(counts[id]||0)+1;});
-  const existing=new Set(orders.map(o=>o.id.trim().toLowerCase()));
+  draft.forEach(o=>{const id=String(o.orderId||"").trim().toLowerCase();if(id)counts[id]=(counts[id]||0)+1;});
+  const existing=new Set(orders.map(o=>String(o.id||"").trim().toLowerCase()).filter(Boolean));
   const dups=new Set();
-  draft.forEach(o=>{const id=o.orderId.trim().toLowerCase();if(id&&(counts[id]>1||existing.has(id)))dups.add(o.cid);});
+  draft.forEach(o=>{const id=String(o.orderId||"").trim().toLowerCase();if(id&&(counts[id]>1||existing.has(id)))dups.add(o.cid);});
   return dups;
 }
 
@@ -1101,7 +1110,7 @@ function exportRecords(){exportSheets("noon-records-"+todayStr(),[{name:"Orders"
 function exportFind(){
   const raw=document.getElementById("findInput").value.trim();
   const ids=raw.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
-  const found=orders.filter(o=>ids.some(q=>o.id.toLowerCase()===q||o.id.toLowerCase().includes(q)));
+  const found=orders.filter(o=>{const id=String(o.id||"").toLowerCase();return ids.some(q=>id===q||id.includes(q));});
   if(!found.length){toast("Search something first.",true);return;}
   exportSheets("noon-find-"+todayStr(),[{name:"Orders",rows:orderRows(found)}]);
 }
@@ -1165,13 +1174,13 @@ const Cloud=(()=>{
     products=mergeById(ps.docs.map(d=>d.data()),products,p=>db.collection("products").doc(fbid(p.id)).set(p));
     customers=mergeById(cs.docs.map(d=>d.data()),customers,c=>db.collection("customers").doc(fbid(c.id)).set(c));
     orders=mergeById(os.docs.map(d=>d.data()),orders,o=>db.collection("orders").doc(fbid(o.id)).set(o));
-    orders.forEach(o=>{if(o.country===undefined)o.country="UAE";});
+    migrate();
     save();renderSetup();renderAdd();renderRecords();renderDash();
   }
   function listen(){
-    db.collection("products").onSnapshot(s=>{products=s.docs.map(d=>d.data());save();renderSetup();refreshBarcodeLists();});
-    db.collection("customers").onSnapshot(s=>{customers=s.docs.map(d=>d.data());save();renderSetup();});
-    db.collection("orders").onSnapshot(s=>{orders=s.docs.map(d=>d.data());orders.forEach(o=>{if(o.country===undefined)o.country="UAE";});save();renderRecords();renderDash();});
+    db.collection("products").onSnapshot(s=>{products=s.docs.map(d=>d.data());ensureIds(products);save();renderSetup();refreshBarcodeLists();});
+    db.collection("customers").onSnapshot(s=>{customers=s.docs.map(d=>d.data());ensureIds(customers);save();renderSetup();});
+    db.collection("orders").onSnapshot(s=>{orders=s.docs.map(d=>d.data());ensureIds(orders);orders.forEach(o=>{if(o.country===undefined)o.country="UAE";if(!Array.isArray(o.lines))o.lines=[];});save();renderRecords();renderDash();});
   }
   async function start(){
     if(typeof firebase==="undefined"){status("Local only (offline)","#6A707D");return;}
@@ -1207,11 +1216,17 @@ if(!Store.get("nod_seeded",false)){
 }
 
 /* ---------- init ---------- */
-renderSetup();renderAdd();renderRecords();renderDash();
-makeMultiSelect("dashCountrySel","Country",dashCountrySet,orderCountries,renderDash);
-makeMultiSelect("dashCustSel","Customer",dashCustSet,orderCustomers,renderDash);
-makeMultiSelect("recCountrySel","Country",recCountrySet,orderCountries,renderRecords);
-makeMultiSelect("recCustSel","Customer",recCustSet,orderCustomers,renderRecords);
+migrate();
+try{renderSetup();}catch(e){console.warn("renderSetup",e);}
+try{renderAdd();}catch(e){console.warn("renderAdd",e);}
+try{renderRecords();}catch(e){console.warn("renderRecords",e);}
+try{renderDash();}catch(e){console.warn("renderDash",e);}
+try{
+  makeMultiSelect("dashCountrySel","Country",dashCountrySet,orderCountries,renderDash);
+  makeMultiSelect("dashCustSel","Customer",dashCustSet,orderCustomers,renderDash);
+  makeMultiSelect("recCountrySel","Country",recCountrySet,orderCountries,renderRecords);
+  makeMultiSelect("recCustSel","Customer",recCustSet,orderCustomers,renderRecords);
+}catch(e){console.warn("multiselect",e);}
 Cloud.start();
 </script>
 </body>
