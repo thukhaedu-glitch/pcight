@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -423,15 +424,35 @@ const VAT=1.05;
 let products=Store.get("nod_products",[]);
 let customers=Store.get("nod_customers",[]);
 let orders=Store.get("nod_orders",[]);
-function ensureIds(arr){let ch=false;(arr||[]).forEach(x=>{if(x&&(x.id==null||x.id==="")){x.id=uid();ch=true;}});return ch;}
-function migrate(){
-  let ch=false;
-  ch=ensureIds(products)||ch;
-  ch=ensureIds(customers)||ch;
-  ch=ensureIds(orders)||ch;
-  (orders||[]).forEach(o=>{if(o.country===undefined){o.country="UAE";ch=true;}if(!Array.isArray(o.lines)){o.lines=[];ch=true;}});
-  if(ch)save();
+function dedupeLocal(){
+  // PRODUCTS unique by barcode (id = barcode); keep the richest record
+  const pmap={};
+  (products||[]).forEach(p=>{
+    if(!p||!p.barcode)return;
+    const bc=String(p.barcode).trim();const kl=bc.toLowerCase();if(!kl)return;
+    const score=((p.title&&String(p.title).trim())?2:0)+((Number(p.cp)>0)?1:0);
+    if(!pmap[kl]||score>pmap[kl]._s)pmap[kl]={id:bc,barcode:bc,title:p.title||"",cp:Number(p.cp)||0,_s:score};
+  });
+  products=Object.values(pmap).map(p=>({id:p.id,barcode:p.barcode,title:p.title,cp:p.cp}));
+  // CUSTOMERS unique by name (keep existing id or use name)
+  const cmap={};
+  (customers||[]).forEach(c=>{
+    if(!c||!c.name)return;const nm=String(c.name).trim();const kl=nm.toLowerCase();if(!kl)return;
+    if(!cmap[kl])cmap[kl]={id:(c.id!=null&&c.id!=="")?String(c.id):nm,name:nm,country:c.country||""};
+  });
+  customers=Object.values(cmap);
+  // ORDERS: drop junk (no id, or no lines), dedupe by id
+  const omap={};
+  (orders||[]).forEach(o=>{
+    if(!o)return;const id=String(o.id||"").trim();
+    const hasLines=Array.isArray(o.lines)&&o.lines.length>0;
+    if(!id||!hasLines)return;
+    if(!omap[id])omap[id]=o;
+  });
+  orders=Object.values(omap);
+  orders.forEach(o=>{if(o.country===undefined)o.country="UAE";if(!Array.isArray(o.lines))o.lines=[];});
 }
+function migrate(){dedupeLocal();save();}
 
 const save=()=>{Store.set("nod_products",products);Store.set("nod_customers",customers);Store.set("nod_orders",orders);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -539,8 +560,8 @@ document.getElementById("pSave").addEventListener("click",()=>{
   if(!bar||!title||!isFinite(cp)){toast("Barcode, title and cost price are all required.",true);return;}
   const existing=products.find(p=>p.barcode.toLowerCase()===bar.toLowerCase());
   let prod;
-  if(existing){existing.title=title;existing.cp=cp;prod=existing;toast("Product updated.");}
-  else{prod={id:uid(),barcode:bar,title,cp};products.push(prod);toast("Product saved.");}
+  if(existing){existing.id=bar;existing.barcode=bar;existing.title=title;existing.cp=cp;prod=existing;toast("Product updated.");}
+  else{prod={id:bar,barcode:bar,title,cp};products.push(prod);toast("Product saved.");}
   save();Cloud.setP(prod);document.getElementById("pBar").value="";document.getElementById("pTitle").value="";document.getElementById("pCp").value="";renderSetup();
 });
 document.getElementById("cSave").addEventListener("click",()=>{
@@ -1055,21 +1076,24 @@ function drawCharts(custArr,cArr){
   if(typeof Chart==="undefined"){["chartCust","chartCountry"].forEach(id=>showChartMsg(id,'<b style="color:var(--muted)">Charts need internet</b>Open online to load chart library.'));return;}
   destroyCharts();
   Chart.defaults.font.family=CHART_FONT;Chart.defaults.font.size=12;Chart.defaults.color="#6C7180";
+  const DL=(typeof ChartDataLabels!=="undefined")?[ChartDataLabels]:[];
   // customers compared (sales vs profit) — top 6 by sales
   const cust=custArr.slice(0,6);
   if(cust.length){
-    _chCust=new Chart(showChartCanvas("chartCust"),{type:"bar",
+    _chCust=new Chart(showChartCanvas("chartCust"),{type:"bar",plugins:DL,
       data:{labels:cust.map(c=>c.name),datasets:[
         {label:"Sales",data:cust.map(c=>+c.amount.toFixed(2)),backgroundColor:"#2C5C8F",borderRadius:5},
         {label:"Profit",data:cust.map(c=>+c.profit.toFixed(2)),backgroundColor:"#1F7A4D",borderRadius:5}]},
-      options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{position:"bottom"}},scales:{x:{grid:{color:"#EEEAE2"}},y:{grid:{display:false}}}}});
+      options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,layout:{padding:{right:46}},
+        plugins:{legend:{position:"bottom"},datalabels:{anchor:"end",align:"right",color:"#3A3F4A",font:{size:9,weight:"600"},formatter:v=>v?fmt(v):""}},
+        scales:{x:{grid:{color:"#EEEAE2"}},y:{grid:{display:false}}}}});
   }else blankChart("chartCust");
   // sales by country donut
   if(cArr.length){
-    _chCountry=new Chart(showChartCanvas("chartCountry"),{type:"doughnut",
+    _chCountry=new Chart(showChartCanvas("chartCountry"),{type:"doughnut",plugins:DL,
       data:{labels:cArr.map(c=>c.country),datasets:[{data:cArr.map(c=>+c.amount.toFixed(2)),backgroundColor:PIE_COLORS,borderColor:"#fff",borderWidth:2}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:"58%",plugins:{legend:{position:"right"}}}});
+      options:{responsive:true,maintainAspectRatio:false,cutout:"55%",
+        plugins:{legend:{position:"right"},datalabels:{color:"#fff",font:{size:11,weight:"700"},formatter:(v,ctx)=>{const a=ctx.chart.data.datasets[0].data.reduce((s,x)=>s+x,0)||1;const pct=Math.round(v/a*100);return fmt(v)+(pct<100?" ("+pct+"%)":"");}}}}});
   }else blankChart("chartCountry");
 }
 
@@ -1171,16 +1195,27 @@ const Cloud=(()=>{
   }
   async function mergeInitial(){
     const[ps,cs,os]=await Promise.all([db.collection("products").get(),db.collection("customers").get(),db.collection("orders").get()]);
-    products=mergeById(ps.docs.map(d=>d.data()),products,p=>db.collection("products").doc(fbid(p.id)).set(p));
-    customers=mergeById(cs.docs.map(d=>d.data()),customers,c=>db.collection("customers").doc(fbid(c.id)).set(c));
-    orders=mergeById(os.docs.map(d=>d.data()),orders,o=>db.collection("orders").doc(fbid(o.id)).set(o));
-    migrate();
+    // pull cloud data into local, then dedupe everything
+    ps.docs.forEach(d=>{const p=d.data();if(p&&p.barcode)products.push(p);});
+    cs.docs.forEach(d=>{const c=d.data();if(c&&c.name)customers.push(c);});
+    os.docs.forEach(d=>{const o=d.data();if(o)orders.push(o);});
+    dedupeLocal();
+    // clean cloud: delete docs that aren't canonical, then (re)write canonicals
+    const pKeep=new Set(products.map(p=>fbid(p.id)));
+    ps.docs.forEach(d=>{if(!pKeep.has(d.id))db.collection("products").doc(d.id).delete().catch(()=>{});});
+    products.forEach(p=>db.collection("products").doc(fbid(p.id)).set(p).catch(()=>{}));
+    const cKeep=new Set(customers.map(c=>fbid(c.id)));
+    cs.docs.forEach(d=>{if(!cKeep.has(d.id))db.collection("customers").doc(d.id).delete().catch(()=>{});});
+    customers.forEach(c=>db.collection("customers").doc(fbid(c.id)).set(c).catch(()=>{}));
+    const oKeep=new Set(orders.map(o=>fbid(o.id)));
+    os.docs.forEach(d=>{if(!oKeep.has(d.id))db.collection("orders").doc(d.id).delete().catch(()=>{});});
+    orders.forEach(o=>db.collection("orders").doc(fbid(o.id)).set(o).catch(()=>{}));
     save();renderSetup();renderAdd();renderRecords();renderDash();
   }
   function listen(){
-    db.collection("products").onSnapshot(s=>{products=s.docs.map(d=>d.data());ensureIds(products);save();renderSetup();refreshBarcodeLists();});
-    db.collection("customers").onSnapshot(s=>{customers=s.docs.map(d=>d.data());ensureIds(customers);save();renderSetup();});
-    db.collection("orders").onSnapshot(s=>{orders=s.docs.map(d=>d.data());ensureIds(orders);orders.forEach(o=>{if(o.country===undefined)o.country="UAE";if(!Array.isArray(o.lines))o.lines=[];});save();renderRecords();renderDash();});
+    db.collection("products").onSnapshot(s=>{products=s.docs.map(d=>d.data());dedupeLocal();save();renderSetup();refreshBarcodeLists();});
+    db.collection("customers").onSnapshot(s=>{customers=s.docs.map(d=>d.data());dedupeLocal();save();renderSetup();});
+    db.collection("orders").onSnapshot(s=>{orders=s.docs.map(d=>d.data());dedupeLocal();save();renderRecords();renderDash();});
   }
   async function start(){
     if(typeof firebase==="undefined"){status("Local only (offline)","#6A707D");return;}
@@ -1208,12 +1243,6 @@ document.getElementById("expAdd").addEventListener("click",exportAdd);
 document.getElementById("expFind").addEventListener("click",exportFind);
 document.getElementById("expRec").addEventListener("click",exportRecords);
 document.getElementById("expSetup").addEventListener("click",exportSetup);
-
-/* ---------- seed demo on first run ---------- */
-if(!Store.get("nod_seeded",false)){
-  if(!products.length){products=[{id:uid(),barcode:"6291100",title:"Cotton bath towel",cp:27.49}];}
-  Store.set("nod_seeded",true);save();
-}
 
 /* ---------- init ---------- */
 migrate();
