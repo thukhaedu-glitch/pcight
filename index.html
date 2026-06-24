@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -885,16 +884,33 @@ function renderEdit(){
 document.getElementById("editBody").addEventListener("input",e=>{
   if(!editDraft)return;
   if(e.target.classList.contains("e-oid"))editDraft.id=e.target.value;
-  if(e.target.classList.contains("e-cust")){editDraft.customerId=e.target.value;const c=customers.find(x=>x.id===e.target.value);editDraft.customerName=c?c.name:"";if(c&&c.country){editDraft.country=c.country;renderEdit();return;}}
-  if(e.target.classList.contains("e-country")){editDraft.country=e.target.value;renderEdit();return;}
-  if(e.target.classList.contains("e-date"))editDraft.date=e.target.value;
-  if(e.target.classList.contains("e-status")){editDraft.status=e.target.value;document.querySelector(".e-refwrap").style.display=e.target.value==="paid"?"flex":"none";}
   if(e.target.classList.contains("e-ref"))editDraft.refId=e.target.value;
+  if(e.target.classList.contains("e-country")){
+    editDraft.country=e.target.value;
+    document.querySelectorAll("#editBody .lineform").forEach(lf=>{const i=+lf.dataset.i;const l=editDraft.lines[i];if(l){const b=lf.querySelector(".calc b");if(b)b.textContent=fmt(trunc2(spPerPc(l.salePrice,l.qty,editDraft.country)));}});
+    return;
+  }
   const lf=e.target.closest(".lineform");
   if(lf){const i=+lf.dataset.i;const l=editDraft.lines[i];
     if(e.target.classList.contains("e-bar")){l.barcode=e.target.value;const p=products.find(pp=>pp.barcode.toLowerCase()===l.barcode.trim().toLowerCase());if(p){l.product=p.title;l.cpPerPc=p.cp;}renderEdit();}
     if(e.target.classList.contains("e-qty")){l.qty=+e.target.value;lf.querySelector(".calc b").textContent=fmt(trunc2(spPerPc(l.salePrice,l.qty,editDraft.country)));}
     if(e.target.classList.contains("e-sale")){l.salePrice=+e.target.value;lf.querySelector(".calc b").textContent=fmt(trunc2(spPerPc(l.salePrice,l.qty,editDraft.country)));}
+  }
+});
+document.getElementById("editBody").addEventListener("change",e=>{
+  if(!editDraft)return;
+  if(e.target.classList.contains("e-cust")){
+    editDraft.customerId=e.target.value;
+    const c=customers.find(x=>x.id===e.target.value);
+    editDraft.customerName=c?c.name:"";
+    const ci=document.querySelector("#editBody .e-country");
+    if(c&&c.country){editDraft.country=c.country;if(ci)ci.value=c.country;}
+    document.querySelectorAll("#editBody .lineform").forEach(lf=>{const i=+lf.dataset.i;const l=editDraft.lines[i];if(l){const b=lf.querySelector(".calc b");if(b)b.textContent=fmt(trunc2(spPerPc(l.salePrice,l.qty,editDraft.country)));}});
+  }
+  if(e.target.classList.contains("e-date")){editDraft.date=e.target.value;}
+  if(e.target.classList.contains("e-status")){
+    editDraft.status=e.target.value;
+    const rw=document.querySelector("#editBody .e-refwrap");if(rw)rw.style.display=e.target.value==="paid"?"flex":"none";
   }
 });
 document.getElementById("editBody").addEventListener("click",e=>{
@@ -906,16 +922,38 @@ document.getElementById("editClose").addEventListener("click",closeEdit);
 document.getElementById("editCancel").addEventListener("click",closeEdit);
 document.getElementById("editOverlay").addEventListener("click",e=>{if(e.target.id==="editOverlay")closeEdit();});
 document.getElementById("editSave").addEventListener("click",()=>{
-  if(!editDraft.id.trim()){toast("Order number can't be empty.",true);return;}
-  const clash=orders.find(o=>o.id!==editId&&o.id.trim().toLowerCase()===editDraft.id.trim().toLowerCase());
+  const body=document.getElementById("editBody");
+  const q=s=>body.querySelector(s);
+  const id=(q(".e-oid")?q(".e-oid").value:"").trim();
+  if(!id){toast("Order number can't be empty.",true);return;}
+  const clash=orders.find(o=>o.id!==editId&&String(o.id).trim().toLowerCase()===id.toLowerCase());
   if(clash){toast("Another order already uses that ID.",true);return;}
-  const lines=editDraft.lines.filter(l=>l.barcode.trim()&&Number(l.qty)>0&&Number(l.salePrice)>0)
-    .map(l=>({barcode:l.barcode.trim(),product:l.product||"(unknown)",cpPerPc:Number(l.cpPerPc)||0,qty:Number(l.qty),salePrice:Number(l.salePrice),spPerPc:trunc2(spPerPc(l.salePrice,l.qty,editDraft.country))}));
+  const customerId=q(".e-cust")?q(".e-cust").value:"";
+  const cust=customers.find(c=>c.id===customerId);
+  const country=(q(".e-country")?q(".e-country").value:"").trim()||"UAE";
+  const date=(q(".e-date")?q(".e-date").value:"")||todayStr();
+  const status=q(".e-status")?q(".e-status").value:"pending";
+  const refId=status==="paid"?(q(".e-ref")?q(".e-ref").value.trim():""):"";
+  const lines=[];
+  body.querySelectorAll(".lineform").forEach((lf,i)=>{
+    const barcode=(lf.querySelector(".e-bar").value||"").trim();
+    const qty=Number(lf.querySelector(".e-qty").value);
+    const salePrice=Number(lf.querySelector(".e-sale").value);
+    if(!(barcode&&qty>0&&salePrice>0))return;
+    const p=products.find(pp=>pp.barcode.toLowerCase()===barcode.toLowerCase());
+    const prev=editDraft&&editDraft.lines[i]?editDraft.lines[i]:{};
+    const product=p?p.title:(prev.product||"(unknown)");
+    const cpPerPc=p?p.cp:(Number(prev.cpPerPc)||0);
+    lines.push({barcode,product,cpPerPc,qty,salePrice,spPerPc:trunc2(spPerPc(salePrice,qty,country))});
+  });
   if(!lines.length){toast("Keep at least one complete line.",true);return;}
   const idx=orders.findIndex(o=>o.id===editId);
-  const updated={id:editDraft.id.trim(),customerId:editDraft.customerId,customerName:editDraft.customerName||"",country:editDraft.country||"UAE",date:editDraft.date,status:editDraft.status,refId:editDraft.status==="paid"?editDraft.refId:"",lines};
-  orders[idx]=updated;
-  save();if(updated.id!==editId)Cloud.delO(editId);Cloud.setO(updated);closeEdit();renderRecords();toast("Order updated.");
+  const updated={id,customerId,customerName:cust?cust.name:"",country,date,status,refId,lines};
+  if(idx>-1)orders[idx]=updated;else orders.push(updated);
+  save();if(updated.id!==editId)Cloud.delO(editId);Cloud.setO(updated);
+  closeEdit();renderRecords();renderDash();
+  if(document.getElementById("findInput").value.trim())runFind();
+  toast("Order updated.");
 });
 
 /* ================= DASHBOARD ================= */
