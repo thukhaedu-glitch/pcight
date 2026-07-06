@@ -159,7 +159,13 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .kpi.clickable{cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
 .kpi.clickable:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 8px 24px rgba(25,28,34,.10)}
 .kpi.clickable:focus{outline:3px solid var(--accent-soft);border-color:var(--accent)}
-.dash-options{display:flex;gap:9px;flex-wrap:wrap;margin:-8px 0 18px}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.dash-advanced{margin:-8px 0 18px}
+.advanced-toggle{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:rgba(255,255,255,.42);color:var(--faint);border-radius:18px;padding:6px 10px;font-size:11px;letter-spacing:.03em;cursor:pointer;transition:.15s}
+.advanced-toggle:hover,.advanced-toggle[aria-expanded="true"]{color:var(--muted);background:var(--surface);border-color:#D7D1C6}
+.advanced-caret{font-size:10px;transition:transform .15s}.advanced-toggle[aria-expanded="true"] .advanced-caret{transform:rotate(180deg)}
+.dash-options{display:flex;gap:9px;flex-wrap:wrap;margin:9px 0 0}
+.dash-options[hidden]{display:none!important}
 .toggle-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid var(--border);border-radius:20px;background:var(--surface);font-size:12px;color:var(--muted);cursor:pointer}
 .toggle-chip input{accent-color:var(--accent)}
 .expense-drill{display:none;margin-bottom:20px}
@@ -252,11 +258,11 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
     <button class="navbtn" data-view="insights"><span class="ic">◆</span> Monthly insights</button>
     <button class="navbtn" data-view="setup"><span class="ic">⚙</span> Products &amp; customers</button>
     <div class="navfoot">
-      <div id="syncStatus" style="display:flex;align-items:center;gap:7px;margin-bottom:8px;font-weight:600;color:#A7ACB8">
+      <div id="syncStatus" title="Local only" aria-label="Local only" style="display:flex;align-items:center;margin-bottom:8px">
         <span id="syncDot" style="width:8px;height:8px;border-radius:50%;background:#6A707D;flex-shrink:0"></span>
-        <span id="syncText">Local only</span>
+        <span id="syncText" class="sr-only">Local only</span>
       </div>
-      Saved in this browser &amp; the cloud.<br>VAT removed for UAE only.
+      VAT removed for UAE only.
     </div>
   </nav>
 
@@ -287,14 +293,14 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
         <div id="dashCountrySel"></div>
         <div id="dashCustSel"></div>
       </div>
-      <div class="dash-options"><label class="toggle-chip"><input type="checkbox" id="dashShowRefunds" checked> Show refund KPIs</label><label class="toggle-chip"><input type="checkbox" id="dashShowNet" checked> Show net KPIs</label></div>
+      <div class="dash-advanced"><button type="button" class="advanced-toggle" id="dashAdvancedToggle" aria-expanded="false" aria-controls="dashAdvancedOptions">Advanced <span class="advanced-caret">⌄</span></button><div class="dash-options" id="dashAdvancedOptions" hidden><label class="toggle-chip"><input type="checkbox" id="dashShowRefunds" checked> Show refund KPIs</label><label class="toggle-chip"><input type="checkbox" id="dashShowNet" checked> Show net KPIs</label></div></div>
       <div class="kpis dash-kpis" id="kpis"></div>
       <div class="panel" style="margin-bottom:20px">
-        <div class="panel-h"><div><h3>Gross Revenue vs Ads Amount</h3><div class="fin-note">Weekly or monthly gross sales compared with advertising spend.</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select class="inp" id="dashTrendMode" style="width:auto;padding:6px 28px 6px 10px"><option value="week">Weekly</option><option value="month">Monthly</option></select><span class="tag" id="dashTrendIncome">Gross 0.00</span><span class="tag" id="dashTrendAds">Ads 0.00</span></div></div>
+        <div class="panel-h"><div><h3>Gross Revenue vs Ads Amount</h3><div class="fin-note">Weekly or monthly gross sales compared with net Ads amount after credits and reversals.</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select class="inp" id="dashTrendMode" style="width:auto;padding:6px 28px 6px 10px"><option value="week">Weekly</option><option value="month">Monthly</option></select><span class="tag" id="dashTrendIncome">Gross 0.00</span><span class="tag" id="dashTrendAds">Ads 0.00</span></div></div>
         <div class="panel-b"><div style="position:relative;height:330px"><canvas id="chartIncomeAds"></canvas></div><div style="font-family:var(--disp);font-weight:700;margin:20px 0 8px">Gross Revenue Summary</div><div class="tbl-wrap"><table id="dashRevenueSummary"></table></div></div>
       </div>
       <div class="panel expense-drill" id="dashExpensePanel">
-        <div class="panel-h"><div><h3>Expense breakdown</h3><div class="fin-note">Platform charges and overhead for the active dashboard filters.</div></div><button class="btn btn-ghost btn-sm" id="dashExpenseClose">Close</button></div>
+        <div class="panel-h"><div><h3>Expense breakdown</h3><div class="fin-note">Net charges for the active filters. Ads charges and credits are shown separately for reconciliation.</div></div><button class="btn btn-ghost btn-sm" id="dashExpenseClose">Close</button></div>
         <div class="panel-b expense-grid"><div id="dashExpenseBreak"></div><div style="position:relative;height:300px"><canvas id="chartExpense"></canvas></div></div>
       </div>
       <div class="grid2">
@@ -426,7 +432,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 
     <!-- ============ FINANCE IMPORT ============ -->
     <section class="view" id="view-finance">
-      <div class="head"><div><div class="eyebrow">Normalize</div><h1>Finance import</h1><p>Import Noon or Amazon transaction CSVs into one clean ledger. Custom platforms can use sales import and manual expenses.</p></div></div>
+      <div class="head"><div><div class="eyebrow">Normalize</div><h1>Finance import</h1><p>Import Noon transaction, Noon Sale &amp; Credit, or Amazon transaction CSVs into one clean ledger. Custom platforms can use sales import and manual expenses.</p></div></div>
       <div class="panel">
         <div class="panel-h"><h3>Upload marketplace report</h3><span class="tag">duplicate-safe</span></div>
         <div class="panel-b">
@@ -436,7 +442,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
               <div class="field" style="margin:0"><label>CSV report</label><input class="inp filepick" id="finFile" type="file" accept=".csv,text/csv"></div>
               <button class="btn btn-pri" id="finImport">Preview report</button>
             </div>
-            <div id="finPreview" class="fin-note" style="margin-top:12px">No file selected. Noon transaction-view and Amazon Transactions reports are supported.</div>
+            <div id="finPreview" class="fin-note" style="margin-top:12px">No file selected. Noon transaction-view, Noon Sale &amp; Credit, and Amazon Transactions reports are supported.</div>
           </div>
           <div id="finImportActions" style="display:none;margin-top:12px;gap:10px;justify-content:flex-end">
             <button class="btn btn-ghost" id="finCancel">Cancel</button><button class="btn btn-pri" id="finConfirm">Import rows</button>
@@ -628,6 +634,18 @@ function dedupeLocal(){
   });
   orders=Object.values(omap);
   orders.forEach(o=>{if(o.country===undefined)o.country="UAE";if(!Array.isArray(o.lines))o.lines=[];if(o.platform)o.platform=platformIdFromName(o.platform);});
+  // FINANCE: keep one canonical copy of each imported report row.
+  // Sale & Credit is only a refund source; discard Ads invoice rows imported by the older mixed-source version.
+  const fmap={};
+  (financeEntries||[]).forEach((e,i)=>{
+    if(!e)return;
+    if(e.source==="sale_credit_report"&&e.category==="ads")return;
+    const key=String(financeIdentity(e)||e.rowKey||e.id||("legacy_"+i)).trim();
+    if(!key)return;
+    const prior=fmap[key],priorTime=String(prior&&prior.createdAt||""),nextTime=String(e.createdAt||"");
+    if(!prior||nextTime>=priorTime)fmap[key]=e; // revised marketplace rows: newest import wins
+  });
+  financeEntries=Object.values(fmap);
   financeEntries.forEach(e=>{if(e&&e.platform)e.platform=platformIdFromName(e.platform);});
   importBatches.forEach(b=>{if(b&&b.platform)b.platform=platformIdFromName(b.platform);});
 }
@@ -1423,6 +1441,8 @@ setupSeg("dashSeg","dashRange","dashFrom","dashTo",f=>{dashFilter=f;dashFrom=doc
 ["dashPlatform"].forEach(id=>document.getElementById(id).addEventListener("change",renderDash));
 document.getElementById("dashTrendMode").value=dashTrendMode;document.getElementById("dashTrendMode").addEventListener("change",e=>{dashTrendMode=e.target.value;Store.set("nod_dash_trend_mode",dashTrendMode);renderDash();});
 document.getElementById("dashShowRefunds").checked=dashShowRefunds;document.getElementById("dashShowNet").checked=dashShowNet;
+function setDashAdvanced(open){const btn=document.getElementById("dashAdvancedToggle"),box=document.getElementById("dashAdvancedOptions");btn.setAttribute("aria-expanded",open?"true":"false");box.hidden=!open;}
+document.getElementById("dashAdvancedToggle").addEventListener("click",e=>setDashAdvanced(e.currentTarget.getAttribute("aria-expanded")!=="true"));setDashAdvanced(false);
 document.getElementById("dashShowRefunds").addEventListener("change",e=>{dashShowRefunds=e.target.checked;Store.set("nod_dash_show_refunds",dashShowRefunds);renderDash();});
 document.getElementById("dashShowNet").addEventListener("change",e=>{dashShowNet=e.target.checked;Store.set("nod_dash_show_net",dashShowNet);renderDash();});
 function toggleDashExpense(){dashExpenseOpen=!dashExpenseOpen;renderDash();if(dashExpenseOpen)document.getElementById("dashExpensePanel").scrollIntoView({behavior:"smooth",block:"start"});}
@@ -1493,16 +1513,17 @@ function renderDash(){
   const commissionNet=fin.reduce((s,e)=>s+nnum(e.commission),0),deliveryNet=fin.reduce((s,e)=>s+nnum(e.delivery),0);
   const otherOrderNet=fin.reduce((s,e)=>s+nnum(e.otherOrder)+nnum(e.subsidy),0),platformNet=commissionNet+deliveryNet+otherOrderNet;
   const overheadNet=fin.reduce((s,e)=>s+nnum(e.overhead),0);
-  const commissionExpense=Math.max(0,-commissionNet),deliveryExpense=Math.max(0,-deliveryNet),otherOrderExpense=Math.max(0,-otherOrderNet);
-  const adsExpense=Math.max(0,-fin.filter(e=>e.scope==="overhead"&&e.category==="ads").reduce((s,e)=>s+nnum(e.overhead),0));
-  const warehouseExpense=Math.max(0,-fin.filter(e=>e.scope==="overhead"&&e.category==="warehouse").reduce((s,e)=>s+nnum(e.overhead),0));
-  const otherOverheadExpense=Math.max(0,-fin.filter(e=>e.scope==="overhead"&&e.category!=="ads"&&e.category!=="warehouse").reduce((s,e)=>s+nnum(e.overhead),0));
+  const commissionExpense=fin.reduce((s,e)=>s+Math.max(0,-nnum(e.commission)),0),deliveryExpense=fin.reduce((s,e)=>s+Math.max(0,-nnum(e.delivery)),0),otherOrderExpense=fin.reduce((s,e)=>s+Math.max(0,-nnum(e.otherOrder)),0);
+  const netOverheadCharge=rows=>-rows.reduce((s,e)=>s+nnum(e.overhead),0),adsLedger=fin.filter(e=>e.scope==="overhead"&&e.category==="ads");
+  const adsCharges=adsLedger.reduce((s,e)=>s+Math.max(0,-nnum(e.overhead)),0),adsCredits=adsLedger.reduce((s,e)=>s+Math.max(0,nnum(e.overhead)),0),adsExpense=adsCharges-adsCredits;
+  const warehouseExpense=netOverheadCharge(fin.filter(e=>e.scope==="overhead"&&e.category==="warehouse"));
+  const otherOverheadExpense=netOverheadCharge(fin.filter(e=>e.scope==="overhead"&&e.category!=="ads"&&e.category!=="warehouse"));
   const platformFees=commissionExpense+deliveryExpense+otherOrderExpense,overheadExpense=adsExpense+warehouseExpense+otherOverheadExpense,totalExpense=platformFees+overheadExpense;
   const contribution=grossProfit+platformNet,finalNet=contribution+overheadNet;
   const trend={};const trendAdd=(date,key,value)=>{const bucket=dashTrendBucket(date);if(!bucket)return;const row=trend[bucket]||(trend[bucket]={key:bucket,gross:0,ads:0});row[key]+=value;};
   fo.forEach(o=>trendAdd(o.date,"gross",orderTotals(o).amount));
   fin.filter(e=>e.scope==="overhead"&&e.category==="ads").forEach(e=>trendAdd(e.date,"ads",-nnum(e.overhead)));
-  const trendRows=Object.values(trend).sort((a,b)=>a.key.localeCompare(b.key)).map(r=>({...r,ads:Math.max(0,r.ads),afterAds:r.gross-Math.max(0,r.ads)}));
+  const trendRows=Object.values(trend).sort((a,b)=>a.key.localeCompare(b.key)).map(r=>({...r,afterAds:r.gross-r.ads}));
   document.getElementById("dashTrendIncome").textContent="Gross "+fmt(amount);
   document.getElementById("dashTrendAds").textContent="Ads "+fmt(adsExpense);
   document.getElementById("dashRevenueSummary").innerHTML=trendRows.length?'<thead><tr><th>Period</th><th class="num">Gross revenue</th><th class="num">Ads amount</th><th class="num">Gross after ads</th></tr></thead><tbody>'+trendRows.map(r=>'<tr><td>'+esc(dashTrendLabel(r.key))+'</td><td class="num">'+fmt(r.gross)+'</td><td class="num neg">'+fmt(r.ads)+'</td><td class="num '+(r.afterAds>=0?'pos':'neg')+'">'+fmt(r.afterAds)+'</td></tr>').join('')+'<tr style="font-weight:700"><td>Total</td><td class="num">'+fmt(amount)+'</td><td class="num neg">'+fmt(adsExpense)+'</td><td class="num '+(amount-adsExpense>=0?'pos':'neg')+'">'+fmt(amount-adsExpense)+'</td></tr></tbody>':'<tbody><tr><td class="empty"><b>No revenue data</b>Add orders or advertising expenses.</td></tr></tbody>';
@@ -1516,15 +1537,19 @@ function renderDash(){
   if(dashShowRefunds){cards.push(dashKpi("Refund qty",String(refundQty),refundEntries.length+" refund rows","k-neg"));cards.push(dashKpi("Refund amount",dashMoney(refundAmount),"not deducted from Total Sales","k-neg"));}
   if(dashShowNet){cards.push(dashKpi("Net sales",dashMoney(netSalesInclVat),"Total Sales − Refunds","k-info"));cards.push(dashKpi("Final net profit",dashMoney(finalNet),"after platform fees + overhead",finalNet>=0?"k-pos":"k-neg"));}
   document.getElementById("kpis").innerHTML=cards.join("");
-  const brow=(lab,val,opt={})=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;'+(opt.top?'':'border-top:1px solid var(--border)')+'"><span style="'+(opt.bold?'font-weight:700;font-family:var(--disp)':'color:var(--muted)')+'">'+lab+'</span><span class="mono" style="'+(opt.bold?'font-weight:700;font-size:16px;':'')+(opt.cls||'')+'">'+(opt.minus?'− ':'')+dashMoney(val)+'</span></div>';
+  const brow=(lab,val,opt={})=>{const n=nnum(val),shown=opt.minus?(n<0?'+ '+dashMoney(Math.abs(n)):'− '+dashMoney(n)):dashMoney(n);return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;'+(opt.top?'':'border-top:1px solid var(--border)')+'"><span style="'+(opt.bold?'font-weight:700;font-family:var(--disp)':'color:var(--muted)')+'">'+lab+'</span><span class="mono" style="'+(opt.bold?'font-weight:700;font-size:16px;':'')+(opt.cls||'')+'">'+shown+'</span></div>';};
   let breakHtml=brow("Total sales (incl. VAT)",amount,{top:true})+brow("Refunds",refundAmount,{minus:true,cls:"color:var(--neg)"});
   if(dashShowNet)breakHtml+=brow("Net sales (incl. VAT)",netSalesInclVat,{})+brow("VAT removed after refunds",adjustedVat,{minus:true,cls:"color:var(--neg)"})+brow("Net sales (ex VAT)",netSalesExVat,{});
   breakHtml+=brow("Net product cost",netProductCost,{minus:true,cls:"color:var(--neg)"})+brow("Gross profit (before fees)",grossProfit,{bold:true,cls:grossProfit>=0?"color:var(--pos)":"color:var(--neg)"})+brow("Platform fees",platformFees,{minus:true,cls:"color:var(--neg)"})+brow("Overhead",overheadExpense,{minus:true,cls:"color:var(--neg)"});
   if(dashShowNet)breakHtml+=brow("Final net profit",finalNet,{bold:true,cls:finalNet>=0?"color:var(--pos)":"color:var(--neg)"});
   document.getElementById("dashBreak").innerHTML=breakHtml;
-  const expenseRows=[["Commission",commissionExpense],["Delivery / fulfilment",deliveryExpense],["Other order fees",otherOrderExpense],["Advertising",adsExpense],["Warehouse / storage",warehouseExpense],["Other overhead",otherOverheadExpense]];
+  const expenseRows=[["Commission",commissionExpense],["Delivery / fulfilment",deliveryExpense],["Other order fees",otherOrderExpense],["Advertising (net)",adsExpense],["Warehouse / storage",warehouseExpense],["Other overhead",otherOverheadExpense]];
   const ep=document.getElementById("dashExpensePanel");ep.classList.toggle("show",dashExpenseOpen);
-  document.getElementById("dashExpenseBreak").innerHTML=expenseRows.map((r,i)=>brow(r[0],r[1],{top:i===0,minus:true,cls:"color:var(--neg)"})).join("")+brow("Total expenses",totalExpense,{bold:true,cls:"color:var(--neg)"});
+  const expenseDetail=[["Commission",commissionExpense],["Delivery / fulfilment",deliveryExpense],["Other order fees",otherOrderExpense]];
+  let expenseHtml=expenseDetail.map((r,i)=>brow(r[0],r[1],{top:i===0,minus:true,cls:"color:var(--neg)"})).join("");
+  expenseHtml+=brow("Ads charges",adsCharges,{minus:true,cls:"color:var(--neg)"})+brow("Ads credits",-adsCredits,{minus:true,cls:"color:var(--pos)"})+brow("Advertising (net)",adsExpense,{minus:true,bold:true,cls:"color:var(--neg)"});
+  expenseHtml+=brow("Warehouse / storage",warehouseExpense,{minus:true,cls:"color:var(--neg)"})+brow("Other overhead",otherOverheadExpense,{minus:true,cls:"color:var(--neg)"})+brow("Total expenses",totalExpense,{bold:true,cls:"color:var(--neg)"});
+  document.getElementById("dashExpenseBreak").innerHTML=expenseHtml;
   const cArr=Object.values(countryMap).sort((a,b)=>b.profit-a.profit);
   document.getElementById("dashCountry").innerHTML=cArr.length?'<thead><tr><th>Country</th><th class="num">Orders</th><th class="num">Qty</th><th class="num">Sales</th><th class="num">Profit</th></tr></thead><tbody>'+cArr.map(c=>'<tr><td>'+esc(c.country)+' '+(c.vat?'<span class="badge b-info" style="font-size:10px">VAT</span>':'<span class="tag" style="font-size:10px">no VAT</span>')+'</td><td class="num">'+c.orders+'</td><td class="num">'+c.qty+'</td><td class="num">'+fmt(c.amount)+'</td><td class="num '+(c.profit>=0?'pos':'neg')+'">'+fmt(c.profit)+'</td></tr>').join("")+'</tbody>':'<tbody><tr><td class="empty"><b>No data</b>Add orders or change the filters.</td></tr></tbody>';
   const custArr=Object.values(custMap).sort((a,b)=>b.amount-a.amount);
@@ -1706,6 +1731,18 @@ function classifyOverhead(s){
   if(/salary|payroll/.test(s))return "salary";
   return "other_overhead";
 }
+function noonStatementReference(v){
+  const m=String(v||"").toUpperCase().match(/PS-\d+-(?:AE|SA)\d{8}/);return m?m[0]:"";
+}
+function financeIdentity(e){
+  if(!e)return "";
+  const platform=String(e.platform||"").toLowerCase();
+  if(platform==="noon"&&e.category==="ads"){
+    const statement=noonStatementReference(String(e.reference||"")+" "+String(e.description||""));
+    if(statement)return "noon_ads|"+String(e.country||"UAE").toUpperCase()+"|"+statement;
+  }
+  return String(e.rowKey||e.id||"");
+}
 function normalizeNoon(rows,fileName){
   return rows.map((r,i)=>{
     const tx=String(r["Transaction Type"]||"").trim().toLowerCase(),orderRaw=String(r["Order Nr"]||"").trim();
@@ -1717,18 +1754,42 @@ function normalizeNoon(rows,fileName){
     const nonOrder=nnum(r["Non-Order Fees including VAT"])+nnum(r["Non-Order Subsidies including VAT"]);
     const others=nnum(r["Others including VAT"]),total=nnum(r["Total"]);
     const title=String(r["Title"]||"").trim(),contract=String(r["Contract Title"]||"");
+    const refundSignal=(tx+" "+title).toLowerCase();
+    const explicitRefund=/(^|[\s_-])(refund(?:ed)?|return(?:ed)?|customer[\s_-]*return|credit[\s_-]*note|reversal)([\s_-]|$)/.test(refundSignal);
     let scope="order",type="order",category="order";
     if(tx==="payment"||tx==="balance_transfer"){scope="cash";type="settlement";category=tx;}
+    else if(explicitRefund||(net<0&&tx!=="order_update")){scope="refund";type="refund";category=explicitRefund?"customer_return":"financial_refund";}
     else if(tx==="statement_fee"||!orderId){scope="overhead";type="expense";category=classifyOverhead(title);}
-    else if(net<0){scope="refund";type="refund";category="refund";}
-    const rawKey=Object.keys(r).map(k=>k+"="+r[k]).join("|");
-    return{id:"fin_"+hashText("noon|"+rawKey),rowKey:"noon_"+hashText(rawKey),batchId:"",source:"report",fileName:fileName||"",platform:"noon",
-      country:/SA/i.test(contract)?"KSA":"UAE",
+    else if(tx==="order_update"){scope="order";type="order_update";category="order_adjustment";}
+    const rawKey=Object.keys(r).map(k=>k+"="+r[k]).join("|"),country=/SA/i.test(contract)?"KSA":"UAE",reference=String(r["Reference Nr"]||"");
+    const statement=noonStatementReference(reference+" "+title),canonicalAds=category==="ads"&&statement?("noon_ads|"+country+"|"+statement):"";
+    const rowKey=canonicalAds||("noon_"+hashText(rawKey)),id="fin_"+hashText(canonicalAds||("noon|"+rawKey));
+    return{id,rowKey,batchId:"",source:"report",fileName:fileName||"",platform:"noon",
+      country,
       date:isoDate(r["Transaction Date"]||r["Order Date"]),orderDate:isoDate(r["Order Date"]||r["Transaction Date"]),status:"released",
-      scope,type,category,orderId,description:title||tx,reference:String(r["Reference Nr"]||""),salesInclVat:net,
+      scope,type,category,orderId,description:title||tx,reference,salesInclVat:net,
       commission:ref,delivery,otherOrder:other,subsidy,overhead:scope==="overhead"?(nonOrder+others):0,cash:scope==="cash"?total:0,
       total,restockStatus:type==="refund"?"pending":"",createdAt:new Date().toISOString()};
   });
+}
+function normalizeNoonSaleCredit(rows,fileName){
+  return rows.map(r=>{
+    const doc=String(r["Document Type"]||r["Document Subtype"]||"").trim().toLowerCase();
+    const tx=String(r["Transaction Type"]||"").trim().toLowerCase();
+    const desc=String(r["Description"]||"").trim(),isCredit=/credit\s*note/.test(doc),isCustomer=tx==="customer";
+    if(!(isCredit&&isCustomer))return null;
+    const amount=Math.abs(nnum(r["Price Including VAT (Document Currency)"]||r["Price Including VAT (VAT Currency)"]));
+    if(amount<0.0001)return null;
+    const rawCountry=String(r["Issuer Country"]||r["Receiver Country"]||"").trim().toUpperCase();
+    const country=/^(SA|KSA)$/.test(rawCountry)?"KSA":"UAE",date=isoDate(r["Document Date"]);
+    const orderId=String(r["Source Doc Nr"]||"").trim();
+    const creditRef=String(r["Credit Note Nr"]||r["Invoice Nr"]||"").trim(),lineRef=String(r["Credit Note Line Nr"]||r["Invoice Line Nr"]||"").trim();
+    const identity="noon_credit|"+creditRef+"|"+lineRef+"|"+orderId+"|"+amount.toFixed(2),signed=-amount;
+    return{id:"fin_"+hashText(identity),rowKey:identity,batchId:"",source:"sale_credit_report",fileName:fileName||"",platform:"noon",country,
+      date,orderDate:date,status:"released",scope:"refund",type:"refund",category:"customer_return",
+      orderId,description:"Credit note · "+desc,reference:creditRef,salesInclVat:signed,commission:0,delivery:0,otherOrder:0,subsidy:0,overhead:0,cash:0,total:signed,
+      restockStatus:"pending",createdAt:new Date().toISOString()};
+  }).filter(Boolean);
 }
 function normalizeAmazon(rows,fileName){
   return rows.map((r,i)=>{
@@ -1749,10 +1810,12 @@ function normalizeAmazon(rows,fileName){
       total,restockStatus:type==="refund"?"pending":"",createdAt:new Date().toISOString()};
   });
 }
-function detectFinancePlatform(rows){
+function detectFinanceFormat(rows){
   if(!rows.length)return "";
-  const k=Object.keys(rows[0]);if(k.includes("Transaction Type")&&k.includes("Order Nr"))return "noon";
-  if(k.includes("Transaction type")&&k.includes("Order ID")&&k.includes("Amazon fees"))return "amazon";return "";
+  const k=Object.keys(rows[0]);
+  if(k.includes("Document Type")&&k.includes("Credit Note Nr")&&k.includes("Price Including VAT (Document Currency)"))return "noon_sale_credit";
+  if(k.includes("Transaction Type")&&k.includes("Order Nr"))return "noon_transaction";
+  if(k.includes("Transaction type")&&k.includes("Order ID")&&k.includes("Amazon fees"))return "amazon_transaction";return "";
 }
 function orderById(id){return orders.find(o=>String(o.id)===String(id));}
 function orderCostRecovery(refunds,baseGross,cost){
@@ -1858,11 +1921,11 @@ function renderExpenses(){
     '<tbody><tr><td class="empty"><b>No overhead expenses</b>Import service fees or add one manually.</td></tr></tbody>';
 }
 function monthlyFinance(){
-  const groups={};const get=(month,platform)=>{const k=month+"|"+platform;return groups[k]||(groups[k]={month,platform,gross:0,refunds:0,vat:0,netSales:0,cost:0,costRecovery:0,commission:0,delivery:0,otherOrder:0,subsidy:0,contribution:0,ads:0,warehouse:0,otherOverhead:0,overhead:0,netProfit:0});};
+  const groups={};const get=(month,platform)=>{const k=month+"|"+platform;return groups[k]||(groups[k]={month,platform,gross:0,refunds:0,vat:0,netSales:0,cost:0,costRecovery:0,commission:0,delivery:0,otherOrder:0,subsidy:0,contribution:0,ads:0,warehouse:0,otherOverhead:0,overhead:0,overheadCharges:0,netProfit:0});};
   const omap={};orders.forEach(o=>omap[String(o.id)]=o);
   orders.forEach(o=>{const p=orderPlatform(o),g=get((o.date||todayStr()).slice(0,7),p),t=orderTotals(o);g.gross+=t.amount;g.vat+=t.vat;g.netSales+=t.exvat;g.cost+=t.cost;g.contribution+=t.exvat-t.cost;});
   financeEntries.forEach(e=>{const g=get((e.date||todayStr()).slice(0,7),e.platform||"shared");
-    if(e.scope==="overhead"){g.overhead+=nnum(e.overhead);if(e.category==="ads")g.ads+=nnum(e.overhead);else if(e.category==="warehouse")g.warehouse+=nnum(e.overhead);else g.otherOverhead+=nnum(e.overhead);return;}
+    if(e.scope==="overhead"){const charge=-nnum(e.overhead);g.overhead+=nnum(e.overhead);if(e.category==="ads")g.ads+=charge;else if(e.category==="warehouse")g.warehouse+=charge;else g.otherOverhead+=charge;return;}
     if(e.scope!=="order"&&e.scope!=="refund")return;
     const manual=omap[String(e.orderId)],sales=nnum(e.salesInclVat),div=vatDiv(e.country);
     if(sales<0||(!manual&&sales>0)){g.gross+=sales>0?sales:0;g.refunds+=sales<0?sales:0;g.vat+=sales-sales/div;g.netSales+=sales/div;g.contribution+=sales/div;}
@@ -1870,7 +1933,7 @@ function monthlyFinance(){
     g.contribution+=nnum(e.commission)+nnum(e.delivery)+nnum(e.otherOrder)+nnum(e.subsidy);
     if(e.type==="refund"&&e.restockStatus==="resellable"&&manual){const t=orderTotals(manual),recovery=t.amount?t.cost*Math.min(1,Math.abs(sales)/t.amount):0;g.costRecovery+=recovery;g.contribution+=recovery;}
   });
-  return Object.values(groups).map(g=>{g.netProfit=g.contribution+g.overhead;g.margin=g.netSales?g.netProfit/g.netSales:0;return g;}).sort((a,b)=>b.month.localeCompare(a.month)||a.platform.localeCompare(b.platform));
+  return Object.values(groups).map(g=>{g.overheadCharges=g.ads+g.warehouse+g.otherOverhead;g.netProfit=g.contribution+g.overhead;g.margin=g.netSales?g.netProfit/g.netSales:0;return g;}).sort((a,b)=>b.month.localeCompare(a.month)||a.platform.localeCompare(b.platform));
 }
 function syncInsightMonthOptions(rows){
   const sel=document.getElementById("insMonth"),old=sel.value||"all",months=[...new Set(rows.map(r=>r.month))].sort().reverse();
@@ -1886,7 +1949,7 @@ function renderInsights(){
   const table=document.getElementById("insightTable");if(!table)return;const rows=filteredMonthlyFinance();
   document.getElementById("insightKpis").innerHTML=finCard("Periods",String(rows.length),"filtered month / platform rows")+
     finCard("Net sales",moneyTotal(rows,"netSales"),"after refunds and VAT")+
-    finCard("Overhead",moneyTotal(rows,"overhead"),"ads, warehouse and other")+
+    finCard("Overhead expenses",moneyTotal(rows,"overheadCharges"),"net charges after credits")+
     finCard("Final net profit",moneyTotal(rows,"netProfit"),"contribution after overhead");
   table.innerHTML=rows.length?'<thead><tr><th>Month</th><th>Platform</th><th class="num">Gross sales</th><th class="num">Refunds</th><th class="num">VAT</th><th class="num">Net sales</th><th class="num">Product cost</th><th class="num">Commission</th><th class="num">Delivery</th><th class="num">Ads</th><th class="num">Warehouse</th><th class="num">Contribution</th><th class="num">Net profit</th><th class="num">Net margin</th></tr></thead><tbody>'+
     rows.map(g=>'<tr><td>'+esc(monthLabel(g.month))+'</td><td>'+platformPill(g.platform)+'</td><td class="num">'+fmt(g.gross)+'</td><td class="num neg">'+fmt(g.refunds)+'</td><td class="num">'+fmt(g.vat)+'</td><td class="num">'+fmt(g.netSales)+'</td><td class="num">'+fmt(g.cost-g.costRecovery)+'</td><td class="num">'+fmt(g.commission)+'</td><td class="num">'+fmt(g.delivery)+'</td><td class="num">'+fmt(g.ads)+'</td><td class="num">'+fmt(g.warehouse)+'</td><td class="num '+(g.contribution>=0?"pos":"neg")+'">'+fmt(g.contribution)+'</td><td class="num '+(g.netProfit>=0?"pos":"neg")+'">'+fmt(g.netProfit)+'</td><td class="num">'+fmt(g.margin*100)+'%</td></tr>').join("")+'</tbody>':
@@ -1895,18 +1958,24 @@ function renderInsights(){
 function renderFinanceAll(){refreshPlatformSelects();renderFinanceHistory();renderOrderPnl();renderRefunds();renderExpenses();renderInsights();}
 async function previewFinanceFile(){
   const file=document.getElementById("finFile").files[0];if(!file){toast("Choose a CSV report first.",true);return;}
-  try{const rows=parseCSV(await file.text()),detected=detectFinancePlatform(rows),chosen=document.getElementById("finPlatform").value,platform=chosen==="auto"?detected:chosen;
-    if(!detected){throw new Error("This CSV does not match the Noon or Amazon sample format.");}
+  try{const rows=parseCSV(await file.text()),format=detectFinanceFormat(rows),detected=format.startsWith("noon_")?"noon":format.startsWith("amazon_")?"amazon":"",chosen=document.getElementById("finPlatform").value,platform=chosen==="auto"?detected:chosen;
+    if(!detected){throw new Error("This CSV does not match a supported Noon or Amazon report.");}
     if(chosen!=="auto"&&chosen!==detected){throw new Error("Selected platform does not match the CSV columns.");}
-    const entries=platform==="noon"?normalizeNoon(rows,file.name):normalizeAmazon(rows,file.name),existing=new Set(financeEntries.map(e=>e.rowKey));
-    const seen=new Set(existing),fresh=entries.filter(e=>{if(seen.has(e.rowKey))return false;seen.add(e.rowKey);return true;}),scopes={};entries.forEach(e=>scopes[e.scope]=(scopes[e.scope]||0)+1);
-    pendingFinanceImport={fileName:file.name,platform,rows:entries,fresh};
-    document.getElementById("finPreview").innerHTML='<b>'+esc(file.name)+'</b> · '+platformPill(platform)+'<br>'+entries.length+' rows found: '+Object.keys(scopes).map(k=>esc(k)+" "+scopes[k]).join(", ")+'<br><span class="'+(fresh.length?"match-ok":"match-no")+'">'+fresh.length+' new</span> · '+(entries.length-fresh.length)+' duplicates will be skipped.';
+    const entries=format==="noon_sale_credit"?normalizeNoonSaleCredit(rows,file.name):format==="noon_transaction"?normalizeNoon(rows,file.name):normalizeAmazon(rows,file.name);
+    const existing=new Map();financeEntries.forEach(e=>{const key=financeIdentity(e);if(key)existing.set(key,e);});
+    const seen=new Map(existing),replacementIds=new Set(),fresh=entries.filter(e=>{const key=financeIdentity(e),prior=seen.get(key);if(!prior){seen.set(key,e);return true;}
+      const revisedAds=key.startsWith("noon_ads|")&&Math.abs(nnum(prior.total||prior.overhead)-nnum(e.total||e.overhead))>0.005;
+      if(revisedAds){replacementIds.add(prior.id);seen.set(key,e);return true;}return false;}),scopes={};entries.forEach(e=>scopes[e.scope]=(scopes[e.scope]||0)+1);
+    pendingFinanceImport={fileName:file.name,platform,format,rows:entries,fresh,replacementIds:[...replacementIds]};
+    const formatNote=format==="noon_sale_credit"?'<br><span class="match-ok">Customer credit notes only.</span> Sales and Ads invoices are ignored to prevent mixed-source totals.':'';
+    document.getElementById("finPreview").innerHTML='<b>'+esc(file.name)+'</b> · '+platformPill(platform)+'<br>'+entries.length+' usable rows: '+Object.keys(scopes).map(k=>esc(k)+" "+scopes[k]).join(", ")+formatNote+'<br><span class="'+(fresh.length?"match-ok":"match-no")+'">'+fresh.length+' new</span> · '+(entries.length-fresh.length)+' duplicates will be skipped.';
     document.getElementById("finImportActions").style.display="flex";
   }catch(e){pendingFinanceImport=null;document.getElementById("finPreview").innerHTML='<div class="fin-alert bad">'+esc(e.message)+'</div>';document.getElementById("finImportActions").style.display="none";}
 }
 function confirmFinanceImport(){
   if(!pendingFinanceImport)return;const p=pendingFinanceImport,batchId="batch_"+uid(),now=new Date().toISOString();
+  const replaceIds=new Set(p.replacementIds||[]),replaced=financeEntries.filter(e=>replaceIds.has(e.id));
+  if(replaceIds.size){financeEntries=financeEntries.filter(e=>!replaceIds.has(e.id));replaced.forEach(e=>Cloud.delF(e.id));}
   p.fresh.forEach(e=>{e.batchId=batchId;financeEntries.push(e);Cloud.setF(e);});
   importBatches.push({id:batchId,fileName:p.fileName,platform:p.platform,rows:p.rows.length,imported:p.fresh.length,skipped:p.rows.length-p.fresh.length,createdAt:now});
   save();pendingFinanceImport=null;document.getElementById("finImportActions").style.display="none";document.getElementById("finFile").value="";
@@ -1959,7 +2028,7 @@ const firebaseConfig={
 };
 const Cloud=(()=>{
   let db=null,ready=false;
-  function status(text,color){const t=document.getElementById("syncText"),d=document.getElementById("syncDot");if(t)t.textContent=text;if(d)d.style.background=color;}
+  function status(text,color){const t=document.getElementById("syncText"),d=document.getElementById("syncDot"),s=document.getElementById("syncStatus");if(t)t.textContent=text;if(d)d.style.background=color;if(s){s.title=text;s.setAttribute("aria-label",text);}}
   function fbid(id){return (String(id).replace(/[\/\\.#$\[\]]/g,"_")||"_").slice(0,400);}
   function mergeById(cloudArr,localArr,upload){
     const map={};cloudArr.forEach(x=>{if(x&&x.id!=null)map[x.id]=x;});
@@ -1988,13 +2057,25 @@ const Cloud=(()=>{
     const plKeep=new Set(platforms.map(p=>fbid(p.id)));
     plsnap.docs.forEach(d=>{if(!plKeep.has(d.id))db.collection("platforms").doc(d.id).delete().catch(()=>{});});
     platforms.forEach(p=>db.collection("platforms").doc(fbid(p.id)).set(p).catch(()=>{}));
+    // Upload finance rows that exist only in this browser before live listeners start.
+    // Without this, the first cloud snapshot can replace freshly imported Ads/refund rows.
+    const fKnown=new Set(fsnap.docs.map(d=>d.id));
+    const missingFinance=financeEntries.filter(e=>e&&e.id&&!fKnown.has(fbid(e.id)));
+    await Promise.all(missingFinance.map(e=>db.collection("finance").doc(fbid(e.id)).set(e).catch(()=>{})));
     save();renderSetup();renderAdd();renderRecords();renderDash();
   }
   function listen(){
     db.collection("products").onSnapshot(s=>{products=s.docs.map(d=>d.data());dedupeLocal();save();renderSetup();renderAdd();refreshBarcodeLists();});
     db.collection("customers").onSnapshot(s=>{customers=s.docs.map(d=>d.data());dedupeLocal();save();renderSetup();});
     db.collection("orders").onSnapshot(s=>{orders=s.docs.map(d=>d.data());dedupeLocal();save();renderRecords();renderDash();renderFinanceAll();});
-    db.collection("finance").onSnapshot(s=>{financeEntries=s.docs.map(d=>d.data());dedupeLocal();save();renderFinanceAll();renderRecords();});
+    db.collection("finance").onSnapshot(s=>{
+      const map=new Map(financeEntries.filter(e=>e&&e.id).map(e=>[String(e.id),e]));
+      s.docChanges().forEach(ch=>{
+        const e=ch.doc.data(),id=String((e&&e.id)||ch.doc.id);
+        if(ch.type==="removed")map.delete(id);else if(e)map.set(id,e);
+      });
+      financeEntries=Array.from(map.values());dedupeLocal();save();renderFinanceAll();renderRecords();renderDash();
+    });
     db.collection("platforms").onSnapshot(s=>{platforms=[...DEFAULT_PLATFORMS,...s.docs.map(d=>d.data())];normalizePlatforms();save();renderSetup();renderAdd();renderDash();renderFinanceAll();});
   }
   async function start(){
