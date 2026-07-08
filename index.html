@@ -235,6 +235,9 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .p-noon{background:#FFF4C7;color:#765B00}.p-amazon{background:#E8EEF7;color:#274C77}.p-manual{background:#ECE8F5;color:#684B8B}.p-shared{background:#EAF3EA;color:#316A3D}
 .match-ok{color:var(--pos);font-weight:600}.match-no{color:var(--neg);font-weight:600}
 .compact-table td{padding:8px 10px}
+.compact-table th.sortable{cursor:pointer;user-select:none}
+.compact-table th.sortable:hover{color:var(--accent)}
+.sort-mark{color:var(--accent);font-size:11px;margin-left:4px}
 @media(max-width:1050px){.fin-grid{grid-template-columns:repeat(2,1fr)}.finance-form{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.fin-grid{grid-template-columns:1fr}.import-actions,.finance-form{grid-template-columns:1fr}}
 #exportKpis{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -1467,14 +1470,14 @@ document.getElementById("editSave").addEventListener("click",()=>{
 
 /* ================= DASHBOARD ================= */
 let dashFilter="all",dashFrom="",dashTo="";
-let dashShowRefunds=Store.get("nod_dash_show_refunds",true),dashShowNet=Store.get("nod_dash_show_net",true),dashExpenseOpen=false;
+let dashShowRefunds=Store.get("nod_dash_show_refunds",true),dashShowNet=Store.get("nod_dash_show_net",true),dashExpenseOpen=false,dashAdvancedOpen=false;
 let dashTrendMode=Store.get("nod_dash_trend_mode","week");
 setupSeg("dashSeg","dashRange","dashFrom","dashTo",f=>{dashFilter=f;dashFrom=document.getElementById("dashFrom").value;dashTo=document.getElementById("dashTo").value;renderDash();});
 ["dashPlatform"].forEach(id=>document.getElementById(id).addEventListener("change",renderDash));
 document.getElementById("dashTrendMode").value=dashTrendMode;document.getElementById("dashTrendMode").addEventListener("change",e=>{dashTrendMode=e.target.value;Store.set("nod_dash_trend_mode",dashTrendMode);renderDash();});
 document.getElementById("dashShowRefunds").checked=dashShowRefunds;document.getElementById("dashShowNet").checked=dashShowNet;
-function setDashAdvanced(open){const btn=document.getElementById("dashAdvancedToggle"),box=document.getElementById("dashAdvancedOptions");btn.setAttribute("aria-expanded",open?"true":"false");box.hidden=!open;}
-document.getElementById("dashAdvancedToggle").addEventListener("click",e=>setDashAdvanced(e.currentTarget.getAttribute("aria-expanded")!=="true"));setDashAdvanced(false);
+function setDashAdvanced(open,rerender=false){dashAdvancedOpen=!!open;const btn=document.getElementById("dashAdvancedToggle"),box=document.getElementById("dashAdvancedOptions");btn.setAttribute("aria-expanded",dashAdvancedOpen?"true":"false");box.hidden=!dashAdvancedOpen;if(!dashAdvancedOpen)dashExpenseOpen=false;if(rerender)renderDash();}
+document.getElementById("dashAdvancedToggle").addEventListener("click",e=>setDashAdvanced(e.currentTarget.getAttribute("aria-expanded")!=="true",true));setDashAdvanced(false);
 document.getElementById("dashShowRefunds").addEventListener("change",e=>{dashShowRefunds=e.target.checked;Store.set("nod_dash_show_refunds",dashShowRefunds);renderDash();});
 document.getElementById("dashShowNet").addEventListener("change",e=>{dashShowNet=e.target.checked;Store.set("nod_dash_show_net",dashShowNet);renderDash();});
 function toggleDashExpense(){dashExpenseOpen=!dashExpenseOpen;renderDash();if(dashExpenseOpen)document.getElementById("dashExpensePanel").scrollIntoView({behavior:"smooth",block:"start"});}
@@ -1575,17 +1578,21 @@ function renderDash(){
   const cards=[];
   cards.push(dashKpi("Total orders",String(fo.length),qty+" pieces sold","k-info"));
   cards.push(dashKpi("Total qty",String(qty),"across "+fo.length+" orders",""));
-  cards.push(dashKpi("Total sales",dashMoney(amount),"gross sales — refunds included",""));
-  cards.push(dashKpi("Gross profit",dashMoney(grossProfit),"after refunds, before fees",grossProfit>=0?"k-pos":"k-neg"));
-  cards.push(dashKpi("Platform fees",dashMoney(platformFees),"commission + delivery + order fees","k-neg"));
-  cards.push(dashKpi("Total expenses",dashMoney(totalExpense),"click for ads, commission, delivery & more","k-neg","dashExpenseCard",true));
-  if(dashShowRefunds){cards.push(dashKpi("Refund qty",String(refundQty),refundEntries.length+" refund rows","k-neg"));cards.push(dashKpi("Refund amount",dashMoney(refundAmount),"not deducted from Total Sales","k-neg"));}
-  if(dashShowNet){cards.push(dashKpi("Net sales",dashMoney(netSalesInclVat),"Total Sales − Refunds","k-info"));cards.push(dashKpi("Final net profit",dashMoney(finalNet),"after platform fees + overhead",finalNet>=0?"k-pos":"k-neg"));}
+  cards.push(dashKpi("Total sales",dashMoney(amount),"VAT included · refunds not deducted",""));
+  cards.push(dashKpi("VAT",dashMoney(vatTot),"included in Total Sales","k-neg"));
+  cards.push(dashKpi("COGS",dashMoney(costTot),"before refund recovery","k-neg"));
+  cards.push(dashKpi("Gross profit",dashMoney(baseProfit),"before refunds and fees",baseProfit>=0?"k-pos":"k-neg"));
+  if(dashAdvancedOpen){
+    cards.push(dashKpi("Platform fees",dashMoney(platformFees),"commission + delivery + order fees","k-neg"));
+    cards.push(dashKpi("Total expenses",dashMoney(totalExpense),"click for ads, commission, delivery & more","k-neg","dashExpenseCard",true));
+    if(dashShowRefunds){cards.push(dashKpi("Refund qty",String(refundQty),refundEntries.length+" refund rows","k-neg"));cards.push(dashKpi("Refund amount",dashMoney(refundAmount),"not deducted from Total Sales","k-neg"));}
+    if(dashShowNet){cards.push(dashKpi("Net sales",dashMoney(netSalesInclVat),"Total Sales − Refunds","k-info"));cards.push(dashKpi("Final net profit",dashMoney(finalNet),"after platform fees + overhead",finalNet>=0?"k-pos":"k-neg"));}
+  }
   document.getElementById("kpis").innerHTML=cards.join("");
   const brow=(lab,val,opt={})=>{const n=nnum(val),shown=opt.minus?(n<0?'+ '+dashMoney(Math.abs(n)):'− '+dashMoney(n)):dashMoney(n);return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;'+(opt.top?'':'border-top:1px solid var(--border)')+'"><span style="'+(opt.bold?'font-weight:700;font-family:var(--disp)':'color:var(--muted)')+'">'+lab+'</span><span class="mono" style="'+(opt.bold?'font-weight:700;font-size:16px;':'')+(opt.cls||'')+'">'+shown+'</span></div>';};
-  let breakHtml=brow("Total sales (incl. VAT)",amount,{top:true})+brow("Refunds",refundAmount,{minus:true,cls:"color:var(--neg)"});
-  if(dashShowNet)breakHtml+=brow("Net sales (incl. VAT)",netSalesInclVat,{})+brow("VAT removed after refunds",adjustedVat,{minus:true,cls:"color:var(--neg)"})+brow("Net sales (ex VAT)",netSalesExVat,{});
-  breakHtml+=brow("Net product cost",netProductCost,{minus:true,cls:"color:var(--neg)"})+brow("Gross profit (before fees)",grossProfit,{bold:true,cls:grossProfit>=0?"color:var(--pos)":"color:var(--neg)"})+brow("Platform fees",platformFees,{minus:true,cls:"color:var(--neg)"})+brow("Overhead",overheadExpense,{minus:true,cls:"color:var(--neg)"});
+  let breakHtml=brow("Total sales (incl. VAT)",amount,{top:true})+brow("VAT included",vatTot,{cls:"color:var(--neg)"})+brow("COGS before refunds",costTot,{cls:"color:var(--neg)"})+brow("Gross profit before refunds",baseProfit,{bold:true,cls:baseProfit>=0?"color:var(--pos)":"color:var(--neg)"});
+  if(dashShowNet)breakHtml+=brow("Refunds",refundAmount,{minus:true,cls:"color:var(--neg)"})+brow("Net sales (incl. VAT)",netSalesInclVat,{})+brow("VAT after refunds",adjustedVat,{cls:"color:var(--neg)"})+brow("Net sales (ex VAT)",netSalesExVat,{})+brow("Net product cost after refunds",netProductCost,{minus:true,cls:"color:var(--neg)"})+brow("Gross profit after refunds",grossProfit,{bold:true,cls:grossProfit>=0?"color:var(--pos)":"color:var(--neg)"});
+  breakHtml+=brow("Platform fees",platformFees,{minus:true,cls:"color:var(--neg)"})+brow("Overhead",overheadExpense,{minus:true,cls:"color:var(--neg)"});
   if(dashShowNet)breakHtml+=brow("Final net profit",finalNet,{bold:true,cls:finalNet>=0?"color:var(--pos)":"color:var(--neg)"});
   document.getElementById("dashBreak").innerHTML=breakHtml;
   const expenseRows=[["Commission",commissionExpense],["Delivery / fulfilment",deliveryExpense],["Other order fees",otherOrderExpense],["Advertising (net)",adsExpense],["Warehouse / storage",warehouseExpense],["Other overhead",otherOverheadExpense]];
@@ -1868,6 +1875,16 @@ function orderCostRecovery(refunds,baseGross,cost){
   refunds.filter(e=>e.restockStatus==="resellable").forEach(e=>recovered+=cost*Math.min(1,Math.abs(nnum(e.salesInclVat))/baseGross));
   return Math.min(cost,recovered);
 }
+function orderLineSummary(o,key){
+  if(!o||!Array.isArray(o.lines)||!o.lines.length)return "";
+  const vals=[...new Set(o.lines.map(l=>String(l&&l[key]||"").trim()).filter(Boolean))];
+  return vals.join(", ");
+}
+function pnlStatus(o,refundGross){
+  if(refundGross<0)return "Refund";
+  if(o&&o.status==="paid")return "Completed";
+  return "Pending";
+}
 function buildOrderPnL(){
   const ids=new Set(orders.map(o=>String(o.id)));
   financeEntries.filter(e=>e.orderId&&(e.scope==="order"||e.scope==="refund")).forEach(e=>ids.add(String(e.orderId)));
@@ -1882,10 +1899,11 @@ function buildOrderPnL(){
     const commission=es.reduce((s,e)=>s+nnum(e.commission),0),delivery=es.reduce((s,e)=>s+nnum(e.delivery),0);
     const otherOrder=es.reduce((s,e)=>s+nnum(e.otherOrder),0),subsidy=es.reduce((s,e)=>s+nnum(e.subsidy),0);
     const recovery=orderCostRecovery(refunds,baseGross,ot.cost);
-    const netSales=salesEx+refundEx,contribution=netSales-ot.cost+recovery+commission+delivery+otherOrder+subsidy;
-    return{id,platform,country,date:(o&&o.date)||(es[0]&&es[0].orderDate)||"",matched:!!o,qty:ot.qty,gross:baseGross,vat:baseGross-salesEx,
+    const netSales=salesEx+refundEx,netAfterRefund=baseGross+refundGross,contribution=netSales-ot.cost+recovery+commission+delivery+otherOrder+subsidy;
+    const refundRatio=baseGross?Math.abs(refundGross)/baseGross:0,marginMeaningful=!(refundGross<0&&(netSales<=0||refundRatio>=0.8||Math.abs(netSales)<1));
+    return{id,platform,country,date:(o&&o.date)||(es[0]&&es[0].orderDate)||"",status:pnlStatus(o,refundGross),matched:!!o,items:orderLineSummary(o,"product"),barcodes:orderLineSummary(o,"barcode"),qty:ot.qty,gross:baseGross,saleAmount:baseGross,netAfterRefund,vat:baseGross-salesEx,
       refunds:refundGross,netSales,cost:ot.cost,costRecovery:recovery,commission,delivery,otherOrder,subsidy,contribution,
-      margin:netSales?contribution/netSales:0,entryCount:es.length};
+      margin:marginMeaningful&&netSales?contribution/netSales:null,entryCount:es.length};
   }).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
 function moneyTotal(rows,valueKey){return fmt(rows.reduce((sum,r)=>sum+nnum(r[valueKey]),0));}
@@ -1918,11 +1936,35 @@ function syncPeriodOptions(yearId,monthId,rows){
 function dateInPeriod(date,year,month){
   const d=String(date||"");return (year==="all"||d.slice(0,4)===year)&&(month==="all"||d.slice(5,7)===month);
 }
+let pnlSort={key:"date",dir:"desc"};
+function pnlSortValue(r,key){
+  if(key==="platform")return platformNameFromId(r.platform).toLowerCase();
+  if(key==="match")return r.matched?1:0;
+  if(key==="status")return {Refund:0,Pending:1,Completed:2}[r.status]??9;
+  if(["saleAmount","netAfterRefund","netSales","refunds","cost","commission","delivery","other","contribution","margin"].includes(key))return key==="other"?nnum(r.otherOrder)+nnum(r.subsidy):nnum(r[key]);
+  return String(r[key]||"").toLowerCase();
+}
+function sortPnlRows(rows){
+  const key=pnlSort.key,dir=pnlSort.dir==="asc"?1:-1;
+  return rows.slice().sort((a,b)=>{
+    const av=pnlSortValue(a,key),bv=pnlSortValue(b,key);
+    if(typeof av==="number"||typeof bv==="number")return ((Number(av)||0)-(Number(bv)||0))*dir;
+    return String(av).localeCompare(String(bv))*dir;
+  });
+}
+function pnlTh(label,key,cls){
+  const active=pnlSort.key===key,mark=active?'<span class="sort-mark">'+(pnlSort.dir==="asc"?"▲":"▼")+'</span>':"";
+  return '<th class="sortable '+(cls||"")+'" data-sort="'+esc(key)+'">'+esc(label)+mark+'</th>';
+}
+function pnlMarginCell(r){
+  if(r.margin==null)return '<td class="num" style="color:var(--faint)">—</td>';
+  return '<td class="num '+(r.margin>=0?"pos":"neg")+'">'+fmt(r.margin*100)+'%</td>';
+}
 function filteredOrderPnlRows(){
   const all=buildOrderPnL();
   syncPeriodOptions("pnlYear","pnlMonth",all);
   const search=String(document.getElementById("pnlSearch").value||"").toLowerCase(),pf=document.getElementById("pnlPlatform").value,yf=document.getElementById("pnlYear").value,mf=document.getElementById("pnlMonth").value;
-  return all.filter(r=>(!search||r.id.toLowerCase().includes(search))&&(pf==="all"||r.platform===pf)&&dateInPeriod(r.date,yf,mf));
+  return sortPnlRows(all.filter(r=>(!search||r.id.toLowerCase().includes(search))&&(pf==="all"||r.platform===pf)&&dateInPeriod(r.date,yf,mf)));
 }
 function renderOrderPnl(){
   const table=document.getElementById("pnlTable");if(!table)return;
@@ -1931,8 +1973,8 @@ function renderOrderPnl(){
     finCard("Net sales",moneyTotal(rows,"netSales"),"refunds "+(rows.length?moneyTotal(rows,"refunds"):"—"))+
     finCard("Platform charges",moneyTotal(rows,"commission"),"commission only")+
     finCard("Contribution",moneyTotal(rows,"contribution"),"before overhead");
-  table.innerHTML=rows.length?'<thead><tr><th>Order ID</th><th>Platform</th><th>Match</th><th class="num">Net sales</th><th class="num">Refund</th><th class="num">Product cost</th><th class="num">Commission</th><th class="num">Delivery</th><th class="num">Other / subsidy</th><th class="num">Contribution</th><th class="num">Margin</th></tr></thead><tbody>'+
-    rows.map(r=>'<tr><td class="mono">'+esc(r.id)+'</td><td>'+platformPill(r.platform)+'</td><td class="'+(r.matched?"match-ok":"match-no")+'">'+(r.matched?"Matched":"Unmatched")+'</td><td class="num">'+fmt(r.netSales)+'</td><td class="num neg">'+fmt(r.refunds)+'</td><td class="num">'+fmt(r.cost-r.costRecovery)+'</td><td class="num">'+fmt(r.commission)+'</td><td class="num">'+fmt(r.delivery)+'</td><td class="num">'+fmt(r.otherOrder+r.subsidy)+'</td><td class="num '+(r.contribution>=0?"pos":"neg")+'">'+fmt(r.contribution)+'</td><td class="num '+(r.margin>=0?"pos":"neg")+'">'+fmt(r.margin*100)+'%</td></tr>').join("")+'</tbody>':
+  table.innerHTML=rows.length?'<thead><tr>'+pnlTh("Order ID","id")+pnlTh("Order date","date")+pnlTh("Status","status")+pnlTh("Platform","platform")+pnlTh("Item","items")+pnlTh("Barcode","barcodes")+pnlTh("Match","match")+pnlTh("Sale amount","saleAmount","num")+pnlTh("Refund","refunds","num")+pnlTh("Net sales","netAfterRefund","num")+pnlTh("Product cost","cost","num")+pnlTh("Commission","commission","num")+pnlTh("Delivery","delivery","num")+pnlTh("Other / subsidy","other","num")+pnlTh("Contribution","contribution","num")+pnlTh("Margin","margin","num")+'</tr></thead><tbody>'+
+    rows.map(r=>'<tr><td class="mono">'+esc(r.id)+'</td><td>'+esc(r.date||"—")+'</td><td><span class="badge '+(r.status==="Completed"?"b-paid":r.status==="Refund"?"":"b-pend")+'" '+(r.status==="Refund"?'style="background:#FDE9E5;color:var(--neg)"':'')+'>'+esc(r.status)+'</span></td><td>'+platformPill(r.platform)+'</td><td>'+esc(r.items||"—")+'</td><td class="mono">'+esc(r.barcodes||"—")+'</td><td class="'+(r.matched?"match-ok":"match-no")+'">'+(r.matched?"Matched":"Unmatched")+'</td><td class="num">'+fmt(r.saleAmount)+'</td><td class="num neg">'+fmt(r.refunds)+'</td><td class="num">'+fmt(r.netAfterRefund)+'</td><td class="num">'+fmt(r.cost-r.costRecovery)+'</td><td class="num">'+fmt(r.commission)+'</td><td class="num">'+fmt(r.delivery)+'</td><td class="num">'+fmt(r.otherOrder+r.subsidy)+'</td><td class="num '+(r.contribution>=0?"pos":"neg")+'">'+fmt(r.contribution)+'</td>'+pnlMarginCell(r)+'</tr>').join("")+'</tbody>':
     '<tbody><tr><td class="empty"><b>No matching orders</b>Import a report or change the filters.</td></tr></tbody>';
 }
 function filteredRefundRows(){
@@ -2034,7 +2076,7 @@ function addManualExpense(){
   const id="fin_manual_"+uid(),e={id,rowKey:id,batchId:"",source:"manual",fileName:"",platform,country:"",date,orderDate:date,status:"released",scope:"overhead",type:"expense",category,orderId:"",description,reference:"",salesInclVat:0,commission:0,delivery:0,otherOrder:0,subsidy:0,overhead:-Math.abs(amount),cash:0,total:-Math.abs(amount),restockStatus:"",createdAt:new Date().toISOString()};
   financeEntries.push(e);save();Cloud.setF(e);document.getElementById("exAmount").value="";document.getElementById("exDescription").value="";renderFinanceAll();toast("Expense saved.");
 }
-function exportPnl(){exportSheets("order-pnl-"+todayStr(),[{name:"Order P&L",rows:filteredOrderPnlRows().map(r=>({"Order ID":r.id,Platform:r.platform,Matched:r.matched?"Yes":"No","Gross Sales":r.gross,Refunds:r.refunds,"Net Sales ex VAT":r.netSales,"Product Cost":r.cost,"Cost Recovery":r.costRecovery,Commission:r.commission,Delivery:r.delivery,"Other / Subsidy":r.otherOrder+r.subsidy,Contribution:r.contribution,"Margin %":r.margin}))}]);}
+function exportPnl(){exportSheets("order-pnl-"+todayStr(),[{name:"Order P&L",rows:filteredOrderPnlRows().map(r=>({"Order ID":r.id,"Order Date":r.date,Status:r.status,Platform:r.platform,Items:r.items,Barcodes:r.barcodes,Matched:r.matched?"Yes":"No","Sale Amount":r.saleAmount,Refunds:r.refunds,"Net Sales":r.netAfterRefund,"Net Sales ex VAT":r.netSales,"Product Cost":r.cost,"Cost Recovery":r.costRecovery,Commission:r.commission,Delivery:r.delivery,"Other / Subsidy":r.otherOrder+r.subsidy,Contribution:r.contribution,"Margin %":r.margin==null?"":r.margin}))}]);}
 function exportExpenses(){exportSheets("overhead-expenses-"+todayStr(),[{name:"Expenses",rows:filteredExpenseRows().map(e=>({Date:e.date,Platform:e.platform,Category:e.category,Description:e.description,Amount:e.overhead,Source:e.source}))}]);}
 function exportInsights(){exportSheets("monthly-insights-"+todayStr(),[{name:"Monthly Insights",rows:filteredMonthlyFinance().map(g=>({Month:g.month,Platform:g.platform,"Gross Sales":g.gross,Refunds:g.refunds,VAT:g.vat,"Net Sales":g.netSales,"Product Cost":g.cost-g.costRecovery,Commission:g.commission,Delivery:g.delivery,Ads:g.ads,Warehouse:g.warehouse,"Other Overhead":g.otherOverhead,Contribution:g.contribution,"Net Profit":g.netProfit,"Net Margin %":g.margin}))}]);}
 
@@ -2232,6 +2274,10 @@ document.getElementById("finConfirm").addEventListener("click",confirmFinanceImp
 document.getElementById("finCancel").addEventListener("click",()=>{pendingFinanceImport=null;document.getElementById("finImportActions").style.display="none";document.getElementById("finPreview").textContent="Import cancelled.";});
 document.getElementById("pnlSearch").addEventListener("input",renderOrderPnl);
 ["pnlPlatform","pnlYear","pnlMonth"].forEach(id=>document.getElementById(id).addEventListener("change",renderOrderPnl));
+document.getElementById("pnlTable").addEventListener("click",e=>{
+  const th=e.target.closest("th[data-sort]");if(!th)return;
+  const key=th.dataset.sort;pnlSort={key,dir:(pnlSort.key===key&&pnlSort.dir==="asc")?"desc":"asc"};renderOrderPnl();
+});
 ["refundPlatform","refundYear","refundMonth"].forEach(id=>document.getElementById(id).addEventListener("change",renderRefunds));
 ["expensePlatform","expenseYear","expenseMonth"].forEach(id=>document.getElementById(id).addEventListener("change",renderExpenses));
 document.getElementById("exSave").addEventListener("click",addManualExpense);
