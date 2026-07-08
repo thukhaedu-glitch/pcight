@@ -654,8 +654,10 @@ function migrate(){dedupeLocal();save();}
 const save=()=>{Store.set("nod_products",products);Store.set("nod_customers",customers);Store.set("nod_orders",orders);Store.set("nod_finance",financeEntries);Store.set("nod_import_batches",importBatches);Store.set("nod_platforms",platforms);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fmt=n=>(isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt4=n=>(isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:4,maximumFractionDigits:4});
 const money=n=>fmt(n);
 const trunc2=n=>Math.floor((isFinite(n)?n:0)*100)/100; // SP/pc shown truncated to 2dp (matches Noon sheet)
+const trunc4=n=>Math.floor((isFinite(n)?n:0)*10000)/10000; // invoice email table requires 4dp without rounding
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 
@@ -769,7 +771,7 @@ function emailTable(orders,continuous){
   orders.forEach((o,oi)=>{
     o.lines.forEach((l)=>{
       const sno="Order "+(oi+1);
-      const sp=fmt(trunc2(spPerPc(l.salePrice,l.qty,o.country)));
+      const sp=fmt4(trunc4(spPerPc(l.salePrice,l.qty,o.country)));
       const cells=[sno,l.barcode,o.id,l.product,l.qty,fmt(l.cpPerPc),sp];
       bodyHtml+="<tr>"+cells.map((c,ci)=>`<td style="border:1px solid #000;padding:6px 10px;text-align:${ci===3?"left":"center"}">${esc(c)}</td>`).join("")+"</tr>";
       bodyTxt+=cells.join("\t")+"\n";
@@ -1458,9 +1460,22 @@ function destroyCharts(){[_chIncomeAds,_chCust,_chCountry,_chBarcode,_chExpense]
 function dashTrendBucket(date){
   const d=String(date||"").slice(0,10);if(!d)return "";
   if(dashTrendMode==="month")return d.slice(0,7);
-  return d.slice(0,7)+"-W"+Math.ceil((Number(d.slice(8,10))||1)/7);
+  const dt=new Date(d+"T00:00:00Z");if(isNaN(dt))return "";
+  // Business week is Saturday through Friday. Use its Thursday to keep ISO week numbering stable.
+  const saturday=new Date(dt),daysSinceSaturday=(saturday.getUTCDay()+1)%7;saturday.setUTCDate(saturday.getUTCDate()-daysSinceSaturday);
+  const thursday=new Date(saturday);thursday.setUTCDate(thursday.getUTCDate()+5);const day=thursday.getUTCDay()||7;thursday.setUTCDate(thursday.getUTCDate()+4-day);
+  const isoYear=thursday.getUTCFullYear(),yearStart=new Date(Date.UTC(isoYear,0,1));
+  const week=Math.ceil((((thursday-yearStart)/86400000)+1)/7);
+  return isoYear+"-W"+String(week).padStart(2,"0");
 }
-function dashTrendLabel(k){if(k.length===7)return monthLabel(k);const m=k.match(/^(\d{4}-\d{2})-W(\d)$/);return m?monthLabel(m[1])+" · W"+m[2]:k;}
+function dashWeekStart(year,week){const jan4=new Date(Date.UTC(year,0,4)),day=jan4.getUTCDay()||7;jan4.setUTCDate(jan4.getUTCDate()-day-1+(week-1)*7);return jan4;}
+function dashDateRangeLabel(startIso,endIso){const months=["January","February","March","April","May","June","July","August","September","October","November","December"],a=new Date(startIso+"T00:00:00Z"),b=new Date(endIso+"T00:00:00Z");
+  if(a.getUTCFullYear()===b.getUTCFullYear()&&a.getUTCMonth()===b.getUTCMonth())return months[a.getUTCMonth()]+" "+a.getUTCDate()+"–"+b.getUTCDate()+", "+a.getUTCFullYear();
+  if(a.getUTCFullYear()===b.getUTCFullYear())return months[a.getUTCMonth()]+" "+a.getUTCDate()+"–"+months[b.getUTCMonth()]+" "+b.getUTCDate()+", "+a.getUTCFullYear();
+  return months[a.getUTCMonth()]+" "+a.getUTCDate()+", "+a.getUTCFullYear()+"–"+months[b.getUTCMonth()]+" "+b.getUTCDate()+", "+b.getUTCFullYear();}
+function dashTrendLabel(k,startIso,endIso){if(k.length===7)return monthLabel(k);const m=k.match(/^(\d{4})-W(\d{2})$/);if(!m)return k;
+  const start=dashWeekStart(Number(m[1]),Number(m[2])),end=new Date(start);end.setUTCDate(end.getUTCDate()+6);startIso=start.toISOString().slice(0,10);endIso=end.toISOString().slice(0,10);
+  return "Week "+Number(m[2])+" ("+dashDateRangeLabel(startIso,endIso)+")";}
 
 function dashMoney(v){return fmt(v);}
 function dashKpi(label,value,sub,cls,id,clickable){
@@ -1520,13 +1535,13 @@ function renderDash(){
   const otherOverheadExpense=netOverheadCharge(fin.filter(e=>e.scope==="overhead"&&e.category!=="ads"&&e.category!=="warehouse"));
   const platformFees=commissionExpense+deliveryExpense+otherOrderExpense,overheadExpense=adsExpense+warehouseExpense+otherOverheadExpense,totalExpense=platformFees+overheadExpense;
   const contribution=grossProfit+platformNet,finalNet=contribution+overheadNet;
-  const trend={};const trendAdd=(date,key,value)=>{const bucket=dashTrendBucket(date);if(!bucket)return;const row=trend[bucket]||(trend[bucket]={key:bucket,gross:0,ads:0});row[key]+=value;};
+  const trend={};const trendAdd=(date,key,value)=>{const d=String(date||"").slice(0,10),bucket=dashTrendBucket(d);if(!bucket)return;const row=trend[bucket]||(trend[bucket]={key:bucket,gross:0,ads:0,startDate:d,endDate:d});row[key]+=value;if(d<row.startDate)row.startDate=d;if(d>row.endDate)row.endDate=d;};
   fo.forEach(o=>trendAdd(o.date,"gross",orderTotals(o).amount));
   fin.filter(e=>e.scope==="overhead"&&e.category==="ads").forEach(e=>trendAdd(e.date,"ads",-nnum(e.overhead)));
   const trendRows=Object.values(trend).sort((a,b)=>a.key.localeCompare(b.key)).map(r=>({...r,afterAds:r.gross-r.ads}));
   document.getElementById("dashTrendIncome").textContent="Gross "+fmt(amount);
   document.getElementById("dashTrendAds").textContent="Ads "+fmt(adsExpense);
-  document.getElementById("dashRevenueSummary").innerHTML=trendRows.length?'<thead><tr><th>Period</th><th class="num">Gross revenue</th><th class="num">Ads amount</th><th class="num">Gross after ads</th></tr></thead><tbody>'+trendRows.map(r=>'<tr><td>'+esc(dashTrendLabel(r.key))+'</td><td class="num">'+fmt(r.gross)+'</td><td class="num neg">'+fmt(r.ads)+'</td><td class="num '+(r.afterAds>=0?'pos':'neg')+'">'+fmt(r.afterAds)+'</td></tr>').join('')+'<tr style="font-weight:700"><td>Total</td><td class="num">'+fmt(amount)+'</td><td class="num neg">'+fmt(adsExpense)+'</td><td class="num '+(amount-adsExpense>=0?'pos':'neg')+'">'+fmt(amount-adsExpense)+'</td></tr></tbody>':'<tbody><tr><td class="empty"><b>No revenue data</b>Add orders or advertising expenses.</td></tr></tbody>';
+  document.getElementById("dashRevenueSummary").innerHTML=trendRows.length?'<thead><tr><th>Period</th><th class="num">Gross revenue</th><th class="num">Ads amount</th><th class="num">Gross after ads</th></tr></thead><tbody>'+trendRows.map(r=>'<tr><td>'+esc(dashTrendLabel(r.key,r.startDate,r.endDate))+'</td><td class="num">'+fmt(r.gross)+'</td><td class="num neg">'+fmt(r.ads)+'</td><td class="num '+(r.afterAds>=0?'pos':'neg')+'">'+fmt(r.afterAds)+'</td></tr>').join('')+'<tr style="font-weight:700"><td>Total</td><td class="num">'+fmt(amount)+'</td><td class="num neg">'+fmt(adsExpense)+'</td><td class="num '+(amount-adsExpense>=0?'pos':'neg')+'">'+fmt(amount-adsExpense)+'</td></tr></tbody>':'<tbody><tr><td class="empty"><b>No revenue data</b>Add orders or advertising expenses.</td></tr></tbody>';
   const cards=[];
   cards.push(dashKpi("Total orders",String(fo.length),qty+" pieces sold","k-info"));
   cards.push(dashKpi("Total qty",String(qty),"across "+fo.length+" orders",""));
@@ -1606,7 +1621,7 @@ function drawIncomeAdsChart(rows){
   if(typeof Chart==="undefined"){showChartMsg("chartIncomeAds",'<b style="color:var(--muted)">Charts need internet</b>Open online to load Chart.js.');return;}
   if(_chIncomeAds){_chIncomeAds.destroy();_chIncomeAds=null;}
   if(!rows.length||!rows.some(r=>Math.abs(r.gross)>0.0001||Math.abs(r.ads)>0.0001)){showChartMsg("chartIncomeAds",'<b style="color:var(--muted)">No gross revenue or ads data</b>Add orders or advertising expenses for this filter.');return;}
-  _chIncomeAds=new Chart(showChartCanvas("chartIncomeAds"),{type:"line",data:{labels:rows.map(r=>dashTrendLabel(r.key)),datasets:[
+  _chIncomeAds=new Chart(showChartCanvas("chartIncomeAds"),{type:"line",data:{labels:rows.map(r=>dashTrendLabel(r.key,r.startDate,r.endDate)),datasets:[
     {label:"Gross Revenue",data:rows.map(r=>+r.gross.toFixed(2)),borderColor:"#1F7A4D",backgroundColor:"rgba(31,122,77,.12)",pointBackgroundColor:"#1F7A4D",pointRadius:4,pointHoverRadius:6,borderWidth:3,tension:.3,fill:true,yAxisID:"yIncome"},
     {label:"Ads Amount",data:rows.map(r=>+r.ads.toFixed(2)),borderColor:"#BE7A14",backgroundColor:"rgba(190,122,20,.10)",pointBackgroundColor:"#BE7A14",pointRadius:4,pointHoverRadius:6,borderWidth:3,tension:.3,fill:false,yAxisID:"yAds"}
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"},datalabels:{display:false}},scales:{x:{grid:{display:false}},yIncome:{type:"linear",position:"left",beginAtZero:true,title:{display:true,text:"Gross Revenue"},grid:{color:"#EEEAE2"}},yAds:{type:"linear",position:"right",beginAtZero:true,title:{display:true,text:"Ads Amount"},grid:{drawOnChartArea:false}}}}});
