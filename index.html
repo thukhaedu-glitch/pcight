@@ -237,6 +237,9 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .compact-table td{padding:8px 10px}
 @media(max-width:1050px){.fin-grid{grid-template-columns:repeat(2,1fr)}.finance-form{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.fin-grid{grid-template-columns:1fr}.import-actions,.finance-form{grid-template-columns:1fr}}
+#exportKpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(max-width:1200px){#exportKpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){#exportKpis{grid-template-columns:1fr}}
 
 </style>
 </head>
@@ -256,6 +259,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
     <button class="navbtn" data-view="refunds"><span class="ic">↩</span> Refunds</button>
     <button class="navbtn" data-view="expenses"><span class="ic">−</span> Expenses</button>
     <button class="navbtn" data-view="insights"><span class="ic">◆</span> Monthly insights</button>
+    <button class="navbtn" data-view="export"><span class="ic">⇪</span> Export</button>
     <button class="navbtn" data-view="setup"><span class="ic">⚙</span> Products &amp; customers</button>
     <div class="navfoot">
       <div id="syncStatus" title="Local only" aria-label="Local only" style="display:flex;align-items:center;margin-bottom:8px">
@@ -512,6 +516,30 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
       <div class="panel"><div class="panel-h"><h3>Monthly performance</h3><span class="tag">signed ledger</span></div><div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="insightTable" class="compact-table"></table></div></div></div>
     </section>
 
+    <!-- ============ EXPORT ============ -->
+    <section class="view" id="view-export">
+      <div class="head"><div><div class="eyebrow">Report</div><h1>Export</h1><p>Filter sales and finance rows, preview the table, then download an Excel file.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" id="expExport">⬇ Detail Excel</button><button class="btn btn-pri" id="expExportPivot">⬇ Pivot Excel</button></div></div>
+      <div class="filterbar" style="margin-bottom:18px">
+        <select class="inp" id="exportYear" style="width:auto;min-width:135px"><option value="all">All years</option></select>
+        <select class="inp" id="exportMonth" style="width:auto;min-width:145px"><option value="all">All months</option></select>
+        <select class="inp" id="exportPlatform" style="width:auto;min-width:150px"><option value="all">All platforms</option></select>
+        <select class="inp" id="exportCustomer" style="width:auto;min-width:190px"><option value="all">All customers</option></select>
+        <div class="seg" id="exportMetricSeg">
+          <button data-m="gross" class="on">Gross</button>
+          <button data-m="net">Net</button>
+        </div>
+      </div>
+      <div class="fin-grid" id="exportKpis" style="margin-top:18px"></div>
+      <div class="panel">
+        <div class="panel-h"><div><h3>Export preview</h3><div class="fin-note" id="exportNote">Rows are formatted like the sample workbook. Excel download includes every filtered row.</div></div><span class="tag" id="exportRowCount">0 rows</span></div>
+        <div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="exportTable" class="compact-table"></table></div></div>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <div class="panel-h"><div><h3>Pivot preview</h3><div class="fin-note">Monthly summary. Net Profit does not deduct Ads / Storage; marketing budget is shown separately.</div></div><span class="tag">month view</span></div>
+        <div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="exportPivotTable" class="compact-table"></table></div></div>
+      </div>
+    </section>
+
     <!-- ============ SETUP ============ -->
     <section class="view" id="view-setup">
       <div class="head">
@@ -729,6 +757,7 @@ function refreshPlatformSelects(){
   setPlatformSelect("expensePlatform",{all:true,shared:true},"all");
   setPlatformSelect("exPlatform",{shared:true},"shared");
   setPlatformSelect("insPlatform",{all:true,shared:true},"all");
+  setPlatformSelect("exportPlatform",{all:true,shared:true},"all");
 }
 function ensurePlatform(v){
   const name=String(v||"").trim();const id=platformIdFromName(name);
@@ -835,6 +864,7 @@ document.querySelectorAll(".navbtn").forEach(b=>b.addEventListener("click",()=>{
   document.getElementById("view-"+b.dataset.view).classList.add("on");
   if(b.dataset.view==="dash")renderDash();
   if(b.dataset.view==="records")renderRecords();
+  if(b.dataset.view==="export")renderExport();
   if(["finance","pnl","refunds","expenses","insights"].includes(b.dataset.view))renderFinanceAll();
 }));
 
@@ -1970,7 +2000,8 @@ function renderInsights(){
     rows.map(g=>'<tr><td>'+esc(monthLabel(g.month))+'</td><td>'+platformPill(g.platform)+'</td><td class="num">'+fmt(g.gross)+'</td><td class="num neg">'+fmt(g.refunds)+'</td><td class="num">'+fmt(g.vat)+'</td><td class="num">'+fmt(g.netSales)+'</td><td class="num">'+fmt(g.cost-g.costRecovery)+'</td><td class="num">'+fmt(g.commission)+'</td><td class="num">'+fmt(g.delivery)+'</td><td class="num">'+fmt(g.ads)+'</td><td class="num">'+fmt(g.warehouse)+'</td><td class="num '+(g.contribution>=0?"pos":"neg")+'">'+fmt(g.contribution)+'</td><td class="num '+(g.netProfit>=0?"pos":"neg")+'">'+fmt(g.netProfit)+'</td><td class="num">'+fmt(g.margin*100)+'%</td></tr>').join("")+'</tbody>':
     '<tbody><tr><td class="empty"><b>No monthly finance data</b>Change the filters, import reports or record expenses.</td></tr></tbody>';
 }
-function renderFinanceAll(){refreshPlatformSelects();renderFinanceHistory();renderOrderPnl();renderRefunds();renderExpenses();renderInsights();}
+function viewActive(id){const el=document.getElementById("view-"+id);return !!(el&&el.classList.contains("on"));}
+function renderFinanceAll(){refreshPlatformSelects();renderFinanceHistory();renderOrderPnl();renderRefunds();renderExpenses();renderInsights();if(viewActive("export"))renderExport();}
 async function previewFinanceFile(){
   const file=document.getElementById("finFile").files[0];if(!file){toast("Choose a CSV report first.",true);return;}
   try{const rows=parseCSV(await file.text()),format=detectFinanceFormat(rows),detected=format.startsWith("noon_")?"noon":format.startsWith("amazon_")?"amazon":"",chosen=document.getElementById("finPlatform").value,platform=chosen==="auto"?detected:chosen;
@@ -2007,6 +2038,195 @@ function exportPnl(){exportSheets("order-pnl-"+todayStr(),[{name:"Order P&L",row
 function exportExpenses(){exportSheets("overhead-expenses-"+todayStr(),[{name:"Expenses",rows:filteredExpenseRows().map(e=>({Date:e.date,Platform:e.platform,Category:e.category,Description:e.description,Amount:e.overhead,Source:e.source}))}]);}
 function exportInsights(){exportSheets("monthly-insights-"+todayStr(),[{name:"Monthly Insights",rows:filteredMonthlyFinance().map(g=>({Month:g.month,Platform:g.platform,"Gross Sales":g.gross,Refunds:g.refunds,VAT:g.vat,"Net Sales":g.netSales,"Product Cost":g.cost-g.costRecovery,Commission:g.commission,Delivery:g.delivery,Ads:g.ads,Warehouse:g.warehouse,"Other Overhead":g.otherOverhead,Contribution:g.contribution,"Net Profit":g.netProfit,"Net Margin %":g.margin}))}]);}
 
+/* ================= EXPORT REPORT ================= */
+const EXPORT_HEADERS=["Row Type","Month","Date","Channel","Country","CCY","Invoice","PO Number","Customer","Item","Barcode","Category","Unit Price","Qty","Avg Cost","COGS","Sales (ERP)","Revenue (Mkt/Sales)","Amazon Fees / Referral Fee","Delivery / Fulfillment","Promo / Subsidies","Refund","Other","Gross Profit","Gross Margin %","Net Profit","Net Margin %","Expense Type","Expense Category (-)","Total Expense Amount","Remark"];
+const EXPORT_NUMERIC=new Set(["Unit Price","Qty","Avg Cost","COGS","Sales (ERP)","Revenue (Mkt/Sales)","Amazon Fees / Referral Fee","Delivery / Fulfillment","Promo / Subsidies","Refund","Other","Gross Profit","Gross Margin %","Net Profit","Net Margin %","Total Expense Amount"]);
+const EXPORT_PIVOT_HEADERS=["Row Labels","Number of Orders","Total Revenue","Total COGS","Order Expense","Gross Profit","Net Profit","ADS and Storage Cost","Gross Margin %","NetMargin %"];
+let exportMetricMode=Store.get("nod_export_metric","gross");
+if(!["gross","net"].includes(exportMetricMode))exportMetricMode=String(exportMetricMode).startsWith("net")?"net":"gross";
+function roundN(n,d=2){const p=Math.pow(10,d);return Math.round((isFinite(n)?n:0)*p)/p;}
+function exportBaseRow(){
+  const r={};EXPORT_HEADERS.forEach(h=>r[h]="");return r;
+}
+function shortMonth(date){
+  const d=new Date(String(date||"")+"T00:00:00"),m=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return isNaN(d)?"":m[d.getMonth()];
+}
+function exportDateRows(){
+  return orders.map(o=>({date:o.date})).concat(financeEntries.map(e=>({date:e.date})));
+}
+function syncExportFilters(){
+  syncPeriodOptions("exportYear","exportMonth",exportDateRows());
+  setPlatformSelect("exportPlatform",{all:true,shared:true},"all");
+  const sel=document.getElementById("exportCustomer");if(!sel)return;
+  const old=sel.value||"all";
+  const names=[...new Set(customers.map(c=>c.name).concat(orders.map(o=>o.customerName)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="all">All customers</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
+  sel.value=old==="all"||names.includes(old)?old:"all";
+}
+function exportFilterValues(){
+  return{
+    year:document.getElementById("exportYear").value,
+    month:document.getElementById("exportMonth").value,
+    platform:document.getElementById("exportPlatform").value,
+    customer:document.getElementById("exportCustomer").value
+  };
+}
+function passExportDate(date,f){return dateInPeriod(date,f.year,f.month);}
+function passExportPlatform(platform,f){return f.platform==="all"||platformIdFromName(platform)===f.platform;}
+function passExportCustomer(customer,f){return f.customer==="all"||String(customer||"")===f.customer;}
+function orderFinanceSummary(orderId){
+  const es=financeEntries.filter(e=>String(e.orderId||"")===String(orderId||"")&&(e.scope==="order"||e.scope==="refund"));
+  return es.reduce((s,e)=>{
+    const sales=nnum(e.salesInclVat);
+    if(sales>0)s.revenue+=sales;
+    if(e.type==="refund"||sales<0)s.refund+=Math.min(0,sales);
+    s.commission+=nnum(e.commission);s.delivery+=nnum(e.delivery);s.subsidy+=nnum(e.subsidy);s.other+=nnum(e.otherOrder);
+    return s;
+  },{revenue:0,refund:0,commission:0,delivery:0,subsidy:0,other:0});
+}
+function makeSaleExportRows(o){
+  const t=orderTotals(o),fin=orderFinanceSummary(o.id),platform=orderPlatform(o),rowDate=o.date||todayStr();
+  const orderGross=t.amount||1;
+  return (o.lines||[]).map((l,idx,arr)=>{
+    const q=Number(l.qty)||0,sale=Number(l.salePrice)||0,ratio=orderGross?sale/orderGross:0,cost=(Number(l.cpPerPc)||0)*q;
+    const salesErp=sale/vatDiv(o.country),revenue=sale,commission=fin.commission*ratio,delivery=fin.delivery*ratio,subsidy=fin.subsidy*ratio,refund=fin.refund*ratio,other=fin.other*ratio;
+    const grossProfit=salesErp-cost,netProfit=grossProfit+commission+delivery+subsidy+refund+other,r=exportBaseRow();
+    r["Row Type"]="Sale";r["Month"]=shortMonth(rowDate);r["Date"]=rowDate;r["Channel"]=platformNameFromId(platform);r["Country"]=o.country||"";r["CCY"]="";
+    r["Invoice"]=o.refId||"";r["PO Number"]=o.id;r["Customer"]=o.customerName||"";r["Item"]=l.product||"";r["Barcode"]=l.barcode||"";r["Category"]="";
+    r["Unit Price"]=q?roundN(sale/q,4):0;r["Qty"]=q;r["Avg Cost"]=roundN(Number(l.cpPerPc)||0,4);r["COGS"]=roundN(-cost,2);r["Sales (ERP)"]=roundN(salesErp,2);
+    r["Revenue (Mkt/Sales)"]=roundN(revenue,2);r["Amazon Fees / Referral Fee"]=roundN(commission,2);r["Delivery / Fulfillment"]=roundN(delivery,2);r["Promo / Subsidies"]=roundN(subsidy,2);r["Refund"]=roundN(refund,2);r["Other"]=roundN(other,2);
+    r["Gross Profit"]=roundN(grossProfit,2);r["Gross Margin %"]=salesErp?roundN(grossProfit/salesErp,4):0;r["Net Profit"]=roundN(netProfit,2);r["Net Margin %"]=salesErp?roundN(netProfit/salesErp,4):0;
+    r["Remark"]=arr.length>1?"Set order ("+arr.length+" lines) — line "+(idx+1):"Set order";
+    return r;
+  });
+}
+function makeUnmatchedFinanceExportRow(e){
+  const r=exportBaseRow(),sales=nnum(e.salesInclVat),platform=e.platform||inferPlatform(e.orderId);
+  r["Row Type"]=sales<0||e.type==="refund"?"Refund":"Finance";r["Month"]=shortMonth(e.date);r["Date"]=e.date||"";r["Channel"]=platformNameFromId(platform);r["Country"]=e.country||"";r["PO Number"]=e.orderId||"";r["Customer"]="";r["Item"]=e.description||"";r["Refund"]=sales<0?roundN(sales,2):0;r["Revenue (Mkt/Sales)"]=0;
+  r["Amazon Fees / Referral Fee"]=roundN(nnum(e.commission),2);r["Delivery / Fulfillment"]=roundN(nnum(e.delivery),2);r["Promo / Subsidies"]=roundN(nnum(e.subsidy),2);r["Other"]=roundN(nnum(e.otherOrder),2);
+  r["Net Profit"]=roundN(nnum(r["Revenue (Mkt/Sales)"])+nnum(r["Refund"])+nnum(r["Amazon Fees / Referral Fee"])+nnum(r["Delivery / Fulfillment"])+nnum(r["Promo / Subsidies"])+nnum(r["Other"]),2);
+  r["Remark"]="Unmatched marketplace finance row";
+  return r;
+}
+function makeExpenseExportRow(e){
+  const r=exportBaseRow();
+  r["Row Type"]="Expense";r["Month"]=shortMonth(e.date);r["Date"]=e.date||"";r["Channel"]=platformNameFromId(e.platform||"shared");r["Country"]=e.country||"";r["Expense Type"]=e.source==="manual"?"Manual expense":"Marketplace expense";r["Expense Category (-)"]=String(e.category||"other_overhead").replace(/_/g," ");r["Total Expense Amount"]=roundN(nnum(e.overhead),2);r["Item"]=e.description||"";r["Invoice"]=e.reference||"";
+  r["Remark"]="Expense row — not deducted from Net Profit";
+  return r;
+}
+function filteredExportRows(){
+  const f=exportFilterValues(),rows=[],matchedOrderIds=new Set(orders.map(o=>String(o.id)));
+  orders.slice().sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).forEach(o=>{
+    const platform=orderPlatform(o),customer=o.customerName||"";
+    if(!passExportDate(o.date,f)||!passExportPlatform(platform,f)||!passExportCustomer(customer,f))return;
+    rows.push(...makeSaleExportRows(o));
+  });
+  financeEntries.filter(e=>(e.scope==="order"||e.scope==="refund")&&e.orderId&&!matchedOrderIds.has(String(e.orderId))).forEach(e=>{
+    if(!passExportDate(e.date,f)||!passExportPlatform(e.platform,f)||f.customer!=="all")return;
+    rows.push(makeUnmatchedFinanceExportRow(e));
+  });
+  financeEntries.filter(e=>e.scope==="overhead"&&Math.abs(nnum(e.overhead))>0.0001).forEach(e=>{
+    if(!passExportDate(e.date,f)||!passExportPlatform(e.platform||"shared",f)||f.customer!=="all")return;
+    rows.push(makeExpenseExportRow(e));
+  });
+  return rows.sort((a,b)=>String(a.Date||"").localeCompare(String(b.Date||""))||String(a["Row Type"]).localeCompare(String(b["Row Type"])));
+}
+function exportMonthKey(date){
+  const d=String(date||"");
+  return /^\d{4}-\d{2}/.test(d)?d.slice(0,7):"";
+}
+function exportPivotBlank(label,key){
+  return{key,label,orders:new Set(),orderCount:0,revenue:0,cogs:0,orderExpense:0,grossProfit:0,netProfit:0,budget:0};
+}
+function isAdsStorageRow(r){
+  const cat=String(r["Expense Category (-)"]||"").toLowerCase(),typ=String(r["Expense Type"]||"").toLowerCase(),item=String(r["Item"]||"").toLowerCase();
+  return /(ads?|advert|campaign|warehouse|storage)/.test(cat+" "+typ+" "+item);
+}
+function buildExportPivotRows(rows){
+  const f=exportFilterValues(),groups={};
+  rows.forEach(r=>{
+    const key=exportMonthKey(r.Date)||"unknown",label=key==="unknown"?"Unknown":(f.year==="all"?monthLabel(key):shortMonth(r.Date));
+    const g=groups[key]||(groups[key]=exportPivotBlank(label,key));
+    if(r["Row Type"]==="Sale"){
+      const oid=String(r["PO Number"]||"").trim();if(oid)g.orders.add(oid);
+      g.revenue+=nnum(r["Revenue (Mkt/Sales)"]);
+      g.cogs+=Math.abs(nnum(r["COGS"]));
+      g.orderExpense+=-(nnum(r["Amazon Fees / Referral Fee"])+nnum(r["Delivery / Fulfillment"])+nnum(r["Promo / Subsidies"])+nnum(r["Other"]));
+    }
+    if(r["Row Type"]==="Expense"&&isAdsStorageRow(r))g.budget+=nnum(r["Total Expense Amount"]);
+  });
+  const arr=Object.values(groups).sort((a,b)=>a.key.localeCompare(b.key));
+  arr.forEach(g=>{g.orderCount=g.orders.size;g.grossProfit=g.revenue-g.cogs;g.netProfit=g.revenue-g.cogs-g.orderExpense;});
+  const total=arr.reduce((s,g)=>{g.orders.forEach(id=>s.orders.add(id));s.revenue+=g.revenue;s.cogs+=g.cogs;s.orderExpense+=g.orderExpense;s.grossProfit+=g.grossProfit;s.netProfit+=g.netProfit;s.budget+=g.budget;return s;},exportPivotBlank("Grand Total","zzzz"));
+  total.orderCount=total.orders.size;
+  const toRow=g=>({
+    "Row Labels":g.label,
+    "Number of Orders":g.orderCount,
+    "Total Revenue":roundN(g.revenue,2),
+    "Total COGS":roundN(g.cogs,2),
+    "Order Expense":roundN(g.orderExpense,2),
+    "Gross Profit":roundN(g.grossProfit,2),
+    "Net Profit":roundN(g.netProfit,2),
+    "ADS and Storage Cost":roundN(g.budget,2),
+    "Gross Margin %":g.revenue?roundN(g.grossProfit/g.revenue,4):0,
+    "NetMargin %":g.revenue?roundN(g.netProfit/g.revenue,4):0
+  });
+  return arr.map(toRow).concat(arr.length?[toRow(total)]:[]);
+}
+function renderPivotPreview(rows){
+  const table=document.getElementById("exportPivotTable");if(!table)return;
+  const pivot=buildExportPivotRows(rows);
+  if(!pivot.length){table.innerHTML='<tbody><tr><td class="empty"><b>No pivot rows</b>Change the filters or add orders/finance data.</td></tr></tbody>';return;}
+  table.innerHTML='<thead><tr>'+EXPORT_PIVOT_HEADERS.map(h=>'<th class="'+(h==="Row Labels"?"":"num")+'">'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+
+    pivot.map((r,i)=>'<tr '+(i===pivot.length-1?'style="font-weight:700"':'')+'>'+EXPORT_PIVOT_HEADERS.map(h=>{
+      const isPct=/Margin|NetMargin/.test(h),isLabel=h==="Row Labels",isCount=h==="Number of Orders",v=r[h],txt=isLabel?v:(isCount?String(v):(isPct?fmt(nnum(v)*100)+"%":fmt(nnum(v))));
+      return '<td class="'+(isLabel?"":"num ")+(nnum(v)<0&&!isLabel?"neg":"")+'">'+esc(txt)+'</td>';
+    }).join("")+'</tr>').join("")+'</tbody>';
+}
+function exportOrderCount(rows){
+  const ids=new Set();rows.forEach(r=>{if(r["Row Type"]==="Sale"&&r["PO Number"])ids.add(String(r["PO Number"]));});
+  return ids.size;
+}
+function exportMetricCards(grand){
+  const g=grand||{},mode=exportMetricMode;
+  const revenue=nnum(g["Total Revenue"]),grossProfit=nnum(g["Gross Profit"]),netProfit=nnum(g["Net Profit"]);
+  const grossMargin=revenue?grossProfit/revenue:0,netMargin=revenue?netProfit/revenue:0;
+  if(mode==="net")return finCard("Net Profit",fmt(netProfit),"excludes Ads / Storage budget",netProfit>=0?"pos":"neg")+
+    finCard("Net Margin",fmt(netMargin*100)+"%","net profit ÷ revenue",netMargin>=0?"pos":"neg");
+  return finCard("Gross Profit",fmt(grossProfit),"revenue - COGS",grossProfit>=0?"pos":"neg")+
+    finCard("Gross Margin",fmt(grossMargin*100)+"%","gross profit ÷ revenue",grossMargin>=0?"pos":"neg");
+}
+function renderExport(){
+  const table=document.getElementById("exportTable");if(!table)return;
+  syncExportFilters();
+  const rows=filteredExportRows(),preview=rows.slice(0,500);
+  const cogs=rows.reduce((s,r)=>s+Math.abs(nnum(r["COGS"])),0),revenue=rows.reduce((s,r)=>s+nnum(r["Revenue (Mkt/Sales)"]),0),pivotRows=buildExportPivotRows(rows),grand=pivotRows[pivotRows.length-1];
+  document.getElementById("exportKpis").innerHTML=finCard("Number of Orders",String(exportOrderCount(rows)),rows.length+" detail rows")+
+    finCard("COGS",fmt(cogs),"total product cost")+
+    finCard("Revenue",fmt(revenue),"same as Dashboard Total Sales")+
+    exportMetricCards(grand);
+  document.getElementById("exportRowCount").textContent=rows.length+" row"+(rows.length===1?"":"s");
+  document.getElementById("exportNote").textContent=preview.length<rows.length?"Preview is limited to 500 rows for speed. Excel download includes all "+rows.length+" filtered rows.":"Rows are formatted like the sample workbook. Excel download includes every filtered row.";
+  renderPivotPreview(rows);
+  if(!rows.length){table.innerHTML='<tbody><tr><td class="empty"><b>No export rows</b>Change the filters or add orders/finance data.</td></tr></tbody>';return;}
+  table.innerHTML='<thead><tr>'+EXPORT_HEADERS.map(h=>'<th class="'+(EXPORT_NUMERIC.has(h)?"num":"")+'">'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+
+    preview.map(r=>'<tr>'+EXPORT_HEADERS.map(h=>{
+      const v=r[h],isMargin=h==="Gross Margin %"||h==="Net Margin %",isNum=EXPORT_NUMERIC.has(h);
+      const txt=isNum?(isMargin?fmt(nnum(v)*100)+"%":fmt(nnum(v))):v;
+      const cls=(isNum?"num ":"")+((isNum&&nnum(v)<0)?"neg":"");
+      return '<td class="'+cls+'">'+esc(txt)+'</td>';
+    }).join("")+'</tr>').join("")+'</tbody>';
+}
+function exportFilteredReport(){
+  const rows=filteredExportRows();
+  exportSheets("commerce-export-"+todayStr(),[{name:"Export",rows:rows.map(r=>{const o={};EXPORT_HEADERS.forEach(h=>o[h]=r[h]);return o;})}]);
+}
+function exportPivotReport(){
+  const rows=buildExportPivotRows(filteredExportRows());
+  exportSheets("commerce-export-pivot-"+todayStr(),[{name:"Pivot View",rows:rows.map(r=>{const o={};EXPORT_PIVOT_HEADERS.forEach(h=>o[h]=r[h]);return o;})}]);
+}
+
 document.getElementById("finImport").addEventListener("click",previewFinanceFile);
 document.getElementById("finConfirm").addEventListener("click",confirmFinanceImport);
 document.getElementById("finCancel").addEventListener("click",()=>{pendingFinanceImport=null;document.getElementById("finImportActions").style.display="none";document.getElementById("finPreview").textContent="Import cancelled.";});
@@ -2018,7 +2238,15 @@ document.getElementById("exSave").addEventListener("click",addManualExpense);
 document.getElementById("expPnl").addEventListener("click",exportPnl);
 document.getElementById("expExpenses").addEventListener("click",exportExpenses);
 document.getElementById("expInsights").addEventListener("click",exportInsights);
+document.getElementById("expExport").addEventListener("click",exportFilteredReport);
+document.getElementById("expExportPivot").addEventListener("click",exportPivotReport);
 ["insPlatform","insMonth"].forEach(id=>document.getElementById(id).addEventListener("change",renderInsights));
+["exportYear","exportMonth","exportPlatform","exportCustomer"].forEach(id=>document.getElementById(id).addEventListener("change",renderExport));
+document.getElementById("exportMetricSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  document.querySelectorAll("#exportMetricSeg button").forEach(x=>x.classList.toggle("on",x===b));
+  exportMetricMode=b.dataset.m||"gross";Store.set("nod_export_metric",exportMetricMode);renderExport();
+});
 document.getElementById("refundTable").addEventListener("change",e=>{if(!e.target.classList.contains("refund-status"))return;const x=financeEntries.find(v=>v.id===e.target.dataset.finId);if(x){x.restockStatus=e.target.value;save();Cloud.setF(x);renderFinanceAll();}});
 document.getElementById("expenseTable").addEventListener("click",e=>{const b=e.target.closest(".expense-del");if(!b)return;const x=financeEntries.find(v=>v.id===b.dataset.finId);if(x&&confirm("Delete this manual expense?")){financeEntries=financeEntries.filter(v=>v.id!==x.id);save();Cloud.delF(x.id);renderFinanceAll();toast("Expense deleted.");}});
 document.getElementById("finHistory").addEventListener("click",e=>{
@@ -2131,6 +2359,7 @@ try{renderAdd();}catch(e){console.warn("renderAdd",e);}
 try{document.getElementById("exDate").value=todayStr();renderFinanceAll();}catch(e){console.warn("renderFinance",e);}
 try{renderRecords();}catch(e){console.warn("renderRecords",e);}
 try{renderDash();}catch(e){console.warn("renderDash",e);}
+try{document.querySelectorAll("#exportMetricSeg button").forEach(b=>b.classList.toggle("on",b.dataset.m===exportMetricMode));renderExport();}catch(e){console.warn("renderExport",e);}
 try{
   makeMultiSelect("dashCountrySel","Country",dashCountrySet,orderCountries,renderDash);
   makeMultiSelect("dashCustSel","Customer",dashCustSet,orderCustomers,renderDash);
