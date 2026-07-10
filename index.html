@@ -316,7 +316,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
           <div class="panel-b" id="dashBreak"></div>
         </div>
         <div class="panel">
-          <div class="panel-h"><h3>Customers compared</h3><span class="tag">sales vs profit</span></div>
+          <div class="panel-h"><h3>Platforms compared</h3><span class="tag">sales amount only</span></div>
           <div class="panel-b"><div style="position:relative;height:300px"><canvas id="chartCust"></canvas></div></div>
         </div>
       </div>
@@ -832,6 +832,8 @@ function countryMarket(country){return normalizeMarket(country);}
 function productMarket(p){return normalizeMarket(p&&p.market);}
 function productByBarcode(barcode){const b=String(barcode||"").trim().toLowerCase();return products.find(p=>String(p.barcode||"").toLowerCase()===b);}
 function productForOrder(barcode,country){const p=productByBarcode(barcode);return p&&productMarket(p)===countryMarket(country)?p:null;}
+function canonicalProductName(l){const p=productByBarcode(l&&l.barcode);return (p&&p.title)||((l&&l.product)||"").trim()||((l&&l.barcode)||"").trim()||"(unknown)";}
+function canonicalProductKey(l){const bc=((l&&l.barcode)||"").trim().toLowerCase();return bc||canonicalProductName(l).toLowerCase();}
 function stockTracked(p){return !!p&&p.stock!==null&&p.stock!==undefined&&p.stock!==""&&isFinite(Number(p.stock));}
 function validateOrderProductStock(list,restoreOrder){
   const restored={},needed={};
@@ -1530,10 +1532,13 @@ function renderDash(){
     return !hasCustomerFilter;
   });
   let qty=0,amount=0,baseProfit=0,vatTot=0,costTot=0,paid=0,pending=0,paidAmt=0,pendAmt=0;
-  const prodMap={},countryMap={},custMap={},monthMap={},barTotals={};
+  const prodMap={},countryMap={},custMap={},platformMap={},monthMap={},barTotals={};
   fo.forEach(o=>{const t=orderTotals(o);
     qty+=t.qty;amount+=t.amount;baseProfit+=t.profit;vatTot+=t.vat;costTot+=t.cost;
     if(o.status==="paid"){paid++;paidAmt+=t.amount;}else{pending++;pendAmt+=t.amount;}
+    const pid=orderPlatform(o)||"manual";
+    if(!platformMap[pid])platformMap[pid]={platform:pid,name:platformNameFromId(pid),orders:0,amount:0};
+    platformMap[pid].orders++;platformMap[pid].amount+=t.amount;
     const cc=o.country||"—";
     if(!countryMap[cc])countryMap[cc]={country:cc,orders:0,qty:0,amount:0,profit:0,vat:isUAE(cc)};
     countryMap[cc].orders++;countryMap[cc].qty+=t.qty;countryMap[cc].amount+=t.amount;countryMap[cc].profit+=t.profit;
@@ -1542,10 +1547,13 @@ function renderDash(){
     custMap[cn].orders++;custMap[cn].amount+=t.amount;custMap[cn].profit+=t.profit;
     const mk=(o.date||"").slice(0,7);
     o.lines.forEach(l=>{
-      const k=l.product||l.barcode;if(!prodMap[k])prodMap[k]={product:l.product||"(unknown)",qty:0,profit:0};
+      const productName=canonicalProductName(l),k=canonicalProductKey(l),bk=l.barcode||"—",q=Number(l.qty)||0;
+      if(!prodMap[k])prodMap[k]={product:productName,barcode:l.barcode||"",qty:0,profit:0};
+      else if(productName&&productName!=="(unknown)")prodMap[k].product=productName;
       prodMap[k].qty+=Number(l.qty);prodMap[k].profit+=lineProfit(l,o.country);
-      const bk=l.barcode||"—",q=Number(l.qty)||0;
-      if(!barTotals[bk])barTotals[bk]={barcode:bk,title:l.product||bk,qty:0};barTotals[bk].qty+=q;
+      if(!barTotals[bk])barTotals[bk]={barcode:bk,title:productName||bk,qty:0};
+      else if(productName&&productName!=="(unknown)")barTotals[bk].title=productName;
+      barTotals[bk].qty+=q;
       if(mk){if(!monthMap[mk])monthMap[mk]={};monthMap[mk][bk]=(monthMap[mk][bk]||0)+q;}
     });
   });
@@ -1607,10 +1615,11 @@ function renderDash(){
   const custArr=Object.values(custMap).sort((a,b)=>b.amount-a.amount);
   document.getElementById("dashCust").innerHTML=custArr.length?'<thead><tr><th>Customer</th><th>Country</th><th class="num">Orders</th><th class="num">Sales</th><th class="num">Profit</th></tr></thead><tbody>'+custArr.slice(0,8).map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.country)+'</td><td class="num">'+c.orders+'</td><td class="num">'+fmt(c.amount)+'</td><td class="num '+(c.profit>=0?'pos':'neg')+'">'+fmt(c.profit)+'</td></tr>').join("")+'</tbody>':'<tbody><tr><td class="empty"><b>No data</b>Attach customers to orders.</td></tr></tbody>';
   const top=Object.values(prodMap).sort((a,b)=>b.profit-a.profit).slice(0,8);
-  document.getElementById("dashTop").innerHTML=top.length?'<thead><tr><th>Product</th><th class="num">Qty</th><th class="num">Profit</th></tr></thead><tbody>'+top.map(p=>'<tr><td>'+esc(p.product)+'</td><td class="num">'+p.qty+'</td><td class="num '+(p.profit>=0?'pos':'neg')+'">'+fmt(p.profit)+'</td></tr>').join("")+'</tbody>':'<tbody><tr><td class="empty"><b>No data</b>Add orders to see your top products.</td></tr></tbody>';
+  document.getElementById("dashTop").innerHTML=top.length?'<thead><tr><th>Product</th><th>Bar code</th><th class="num">Qty</th><th class="num">Profit</th></tr></thead><tbody>'+top.map(p=>'<tr><td>'+esc(p.product)+'</td><td>'+(p.barcode?'<span class="tag">'+esc(p.barcode)+'</span>':'—')+'</td><td class="num">'+p.qty+'</td><td class="num '+(p.profit>=0?'pos':'neg')+'">'+fmt(p.profit)+'</td></tr>').join("")+'</tbody>':'<tbody><tr><td class="empty"><b>No data</b>Add orders to see your top products.</td></tr></tbody>';
   const months=Object.keys(monthMap).sort(),topBarsTbl=Object.values(barTotals).sort((a,b)=>b.qty-a.qty).slice(0,12);
   document.getElementById("dashMonthly").innerHTML=(months.length&&topBarsTbl.length)?'<thead><tr><th>Product</th><th>Bar code</th>'+months.map(m=>'<th class="num">'+monthLabel(m)+'</th>').join("")+'<th class="num">Total</th></tr></thead><tbody>'+topBarsTbl.map(b=>'<tr><td>'+esc(b.title)+'</td><td><span class="tag">'+esc(b.barcode)+'</span></td>'+months.map(m=>{const v=(monthMap[m]&&monthMap[m][b.barcode])||0;return '<td class="num">'+(v||"·")+'</td>';}).join("")+'<td class="num" style="font-weight:700">'+b.qty+'</td></tr>').join("")+'</tbody>':'<tbody><tr><td class="empty"><b>No data</b>Save orders with dates to see monthly sales.</td></tr></tbody>';
-  drawCharts(custArr,cArr);
+  const platformArr=Object.values(platformMap).sort((a,b)=>b.amount-a.amount);
+  drawCharts(platformArr,cArr);
   drawIncomeAdsChart(trendRows);
   if(dashExpenseOpen)drawExpenseChart(expenseRows);
 }
@@ -1629,20 +1638,19 @@ function showChartCanvas(id){
 }
 function blankChart(id){showChartMsg(id,'<b style="color:var(--muted)">No data yet</b>Save orders to see this chart.');}
 
-function drawCharts(custArr,cArr){
+function drawCharts(platformArr,cArr){
   if(typeof Chart==="undefined"){["chartCust","chartCountry"].forEach(id=>showChartMsg(id,'<b style="color:var(--muted)">Charts need internet</b>Open online to load chart library.'));return;}
   destroyCharts();
   Chart.defaults.font.family=CHART_FONT;Chart.defaults.font.size=12;Chart.defaults.color="#6C7180";
   const DL=(typeof ChartDataLabels!=="undefined")?[ChartDataLabels]:[];
-  // customers compared (sales vs profit) — top 6 by sales
-  const cust=custArr.slice(0,6);
-  if(cust.length){
+  // platforms compared — sale amount only
+  const plats=platformArr.slice(0,8);
+  if(plats.length){
     _chCust=new Chart(showChartCanvas("chartCust"),{type:"bar",plugins:DL,
-      data:{labels:cust.map(c=>c.name),datasets:[
-        {label:"Sales",data:cust.map(c=>+c.amount.toFixed(2)),backgroundColor:"#2C5C8F",borderRadius:5},
-        {label:"Profit",data:cust.map(c=>+c.profit.toFixed(2)),backgroundColor:"#1F7A4D",borderRadius:5}]},
+      data:{labels:plats.map(p=>p.name),datasets:[
+        {label:"Sale amount",data:plats.map(p=>+p.amount.toFixed(2)),backgroundColor:"#2C5C8F",borderRadius:5}]},
       options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,layout:{padding:{right:46}},
-        plugins:{legend:{position:"bottom"},datalabels:{anchor:"end",align:"right",color:"#3A3F4A",font:{size:9,weight:"600"},formatter:v=>v?fmt(v):""}},
+        plugins:{legend:{display:false},datalabels:{anchor:"end",align:"right",color:"#3A3F4A",font:{size:9,weight:"600"},formatter:v=>v?fmt(v):""}},
         scales:{x:{grid:{color:"#EEEAE2"}},y:{grid:{display:false}}}}});
   }else blankChart("chartCust");
   // sales by country donut
