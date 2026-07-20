@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <!-- saved from url=(0074)https://raw.githack.com/thukhaedu-glitch/pcight/refs/heads/main/index.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -13,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <style>
 :root{
@@ -21038,6 +21040,17 @@ const Cloud=(()=>{
     if(typeof firebase==="undefined"){status("Local only (offline)","#6A707D");return;}
     try{
       firebase.initializeApp(firebaseConfig);db=firebase.firestore();
+      // Anonymous sign-in: lets Firestore rules require request.auth != null
+      // (blocks random public read/write) without asking the user to log in.
+      try{
+        if(firebase.auth){
+          await firebase.auth().signInAnonymously();
+        }
+      }catch(authErr){
+        // If Anonymous auth isn't enabled in the Firebase console, don't hard-fail;
+        // the app still works and rules that allow open access will still pass.
+        console.warn("Anonymous auth unavailable:",authErr);
+      }
       try{await db.enablePersistence({synchronizeTabs:true});}catch(e){/* multiple tabs open or unsupported browser - safe to ignore */}
       ready=true;
       status("Syncing...","#9A6A00");
