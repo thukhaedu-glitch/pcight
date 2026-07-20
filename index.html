@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <!-- saved from url=(0074)https://raw.githack.com/thukhaedu-glitch/pcight/refs/heads/main/index.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -9,12 +8,12 @@
 <title>Commerce Finance Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="./ONLINESALE_files/css2" rel="stylesheet">
-<script src="./ONLINESALE_files/chart.umd.min.js.download"></script>
-<script src="./ONLINESALE_files/chartjs-plugin-datalabels.min.js.download"></script>
-<script src="./ONLINESALE_files/xlsx.full.min.js.download"></script>
-<script src="./ONLINESALE_files/firebase-app-compat.js.download"></script>
-<script src="./ONLINESALE_files/firebase-firestore-compat.js.download"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --canvas:#F5F4F0; --surface:#FFFFFF; --surface-2:#FAF9F6;
@@ -354,8 +353,8 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 <div class="app">
   <nav class="nav">
     <div class="brand">
-      <div class="dot">C</div>
-      <div><b>Order Desk</b><small>Commerce finance</small></div>
+      <a id="brandUsageLink" href="https://console.firebase.google.com/project/_/usage" target="_blank" rel="noopener" title="Estimated Firebase usage today. Click to open the Console." style="text-decoration:none"><div class="dot" style="cursor:pointer">C</div></a>
+      <div><b>Order Desk</b><small>Commerce finance</small><small id="quotaMini" style="display:block;opacity:.85">Cloud today ~0%</small></div>
     </div>
     <button class="navbtn on" data-view="dash"><span class="ic">◇</span> Dashboard</button>
     <button class="navbtn" data-view="add"><span class="ic">+</span> Add orders</button>
@@ -20903,6 +20902,30 @@ const firebaseConfig={
 };
 const Cloud=(()=>{
   let db=null,ready=false;
+  // ---- daily Firebase usage estimate (Spark free tier: 50k reads, 20k writes, 20k deletes/day) ----
+  const QUOTA={read:50000,write:20000,del:20000};
+  function todayKey(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  let usage=(()=>{try{const raw=JSON.parse(localStorage.getItem("nod_fb_usage")||"{}");if(raw.day===todayKey())return raw;}catch(e){}return{day:todayKey(),read:0,write:0,del:0};})();
+  function persistUsage(){try{localStorage.setItem("nod_fb_usage",JSON.stringify(usage));}catch(e){}}
+  let quotaRenderRaf=0;
+  function renderQuota(){
+    if(quotaRenderRaf)return;quotaRenderRaf=requestAnimationFrame(()=>{
+      quotaRenderRaf=0;
+      const el=document.getElementById("quotaMini");if(!el)return;
+      const pct=k=>Math.min(100,Math.round((usage[k]/QUOTA[k])*100));
+      const rp=pct("read"),wp=pct("write"),dp=pct("del"),peak=Math.max(rp,wp,dp);
+      const col=peak>=90?"#E0846B":peak>=70?"#D8A93A":"#5FBF8F";
+      el.textContent="Cloud today ~"+peak+"%";
+      el.style.color=col;
+      const link=document.getElementById("brandUsageLink");
+      if(link)link.title="Estimated Firebase usage today (resets midnight US Pacific on Firebase's side):\nReads ~"+usage.read+" / "+QUOTA.read+" ("+rp+"%)\nWrites ~"+usage.write+" / "+QUOTA.write+" ("+wp+"%)\nDeletes ~"+usage.del+" / "+QUOTA.del+" ("+dp+"%)\n\nIn-app estimate, not the exact Firebase figure. Click to open the real Console.";
+    });
+  }
+  function bump(kind,n){
+    if(usage.day!==todayKey())usage={day:todayKey(),read:0,write:0,del:0};
+    usage[kind]=(usage[kind]||0)+(n||1);persistUsage();renderQuota();
+  }
+  window.__renderQuota=renderQuota;
   function status(text,color){const t=document.getElementById("syncText"),d=document.getElementById("syncDot"),s=document.getElementById("syncStatus");if(t)t.textContent=text;if(d)d.style.background=color;if(s){s.title=text;s.setAttribute("aria-label",text);}}
   function fbid(id){return (String(id).replace(/[\/\\.#$\[\]]/g,"_")||"_").slice(0,400);}
   function cloudError(e){
@@ -20915,7 +20938,7 @@ const Cloud=(()=>{
     }
     console.warn("Firebase:",e);
   }
-  function watch(ref,next){return ref.onSnapshot(next,cloudError);}
+  function watch(ref,next){return ref.onSnapshot(s=>{try{bump("read",(s&&s.docChanges&&s.docChanges().length)||0);}catch(e){}next(s);},cloudError);}
   function mergeById(cloudArr,localArr,upload){
     const map={};cloudArr.forEach(x=>{if(x&&x.id!=null)map[x.id]=x;});
     localArr.forEach(x=>{if(x&&x.id!=null&&!(x.id in map)){map[x.id]=x;upload(x);}});
@@ -21022,43 +21045,46 @@ const Cloud=(()=>{
       status("Cloud connected","#3DBA7B");
     }catch(e){cloudError(e);}
   }
-  const guard=fn=>(...a)=>{
+  const guard=(fn,kind)=>(...a)=>{
     if(!ready)return;
     try{
       const r=fn(...a);
+      if(kind)bump(kind,1);
       if(r&&typeof r.catch==="function")r.catch(cloudError);
       return r;
     }catch(e){cloudError(e);}
   };
+  const gw=fn=>guard(fn,"write"),gd=fn=>guard(fn,"del");
   return{start,
-    setP:guard(p=>db.collection("products").doc(fbid(p.id)).set(p)),
-    delP:guard(id=>db.collection("products").doc(fbid(id)).delete()),
-    setC:guard(c=>db.collection("customers").doc(fbid(c.id)).set(c)),
-    delC:guard(id=>db.collection("customers").doc(fbid(id)).delete()),
-    setO:guard(o=>db.collection("orders").doc(fbid(o.id)).set(o)),
-    delO:guard(id=>db.collection("orders").doc(fbid(id)).delete()),
-    setF:guard(e=>db.collection("finance").doc(fbid(e.id)).set(e)),
-    delF:guard(id=>db.collection("finance").doc(fbid(id)).delete()),
-    setPay:guard(p=>db.collection("payments").doc(fbid(p.id)).set(p)),
-    delPay:guard(id=>db.collection("payments").doc(fbid(id)).delete()),
-    setPlatform:guard(p=>p&&db.collection("platforms").doc(fbid(p.id)).set(p)),
-    delPlatform:guard(id=>db.collection("platforms").doc(fbid(id)).delete()),
-    setWarehouse:guard(w=>w&&db.collection("warehouses").doc(fbid(w.id)).set(w)),
-    delWarehouse:guard(id=>db.collection("warehouses").doc(fbid(id)).delete()),
-    setWarehouseDeleted:guard(id=>id&&db.collection("warehouse_deletions").doc(fbid(id)).set({id,deletedAt:new Date().toISOString()})),
-    delWarehouseDeleted:guard(id=>id&&db.collection("warehouse_deletions").doc(fbid(id)).delete()),
-    setLayout:guard(l=>l&&db.collection("warehouse_layouts").doc(fbid(l.id)).set(l)),
-    delLayout:guard(id=>db.collection("warehouse_layouts").doc(fbid(id)).delete()),
-    setCarton:guard(c=>c&&db.collection("warehouse_cartons").doc(fbid(c.id)).set(c)),
-    delCarton:guard(id=>db.collection("warehouse_cartons").doc(fbid(id)).delete()),
-    setZone:guard(z=>z&&db.collection("warehouse_zones").doc(fbid(z.id)).set(z)),
-    delZone:guard(id=>db.collection("warehouse_zones").doc(fbid(id)).delete()),
-    setInv:guard(r=>r&&db.collection("inventory").doc(fbid(r.id)).set(r)),
-    delInv:guard(id=>db.collection("inventory").doc(fbid(id)).delete()),
-    setMove:guard(m=>m&&db.collection("stock_moves").doc(fbid(m.id)).set(m)),
-    delMove:guard(id=>db.collection("stock_moves").doc(fbid(id)).delete())
+    setP:gw(p=>db.collection("products").doc(fbid(p.id)).set(p)),
+    delP:gd(id=>db.collection("products").doc(fbid(id)).delete()),
+    setC:gw(c=>db.collection("customers").doc(fbid(c.id)).set(c)),
+    delC:gd(id=>db.collection("customers").doc(fbid(id)).delete()),
+    setO:gw(o=>db.collection("orders").doc(fbid(o.id)).set(o)),
+    delO:gd(id=>db.collection("orders").doc(fbid(id)).delete()),
+    setF:gw(e=>db.collection("finance").doc(fbid(e.id)).set(e)),
+    delF:gd(id=>db.collection("finance").doc(fbid(id)).delete()),
+    setPay:gw(p=>db.collection("payments").doc(fbid(p.id)).set(p)),
+    delPay:gd(id=>db.collection("payments").doc(fbid(id)).delete()),
+    setPlatform:gw(p=>p&&db.collection("platforms").doc(fbid(p.id)).set(p)),
+    delPlatform:gd(id=>db.collection("platforms").doc(fbid(id)).delete()),
+    setWarehouse:gw(w=>w&&db.collection("warehouses").doc(fbid(w.id)).set(w)),
+    delWarehouse:gd(id=>db.collection("warehouses").doc(fbid(id)).delete()),
+    setWarehouseDeleted:gw(id=>id&&db.collection("warehouse_deletions").doc(fbid(id)).set({id,deletedAt:new Date().toISOString()})),
+    delWarehouseDeleted:gd(id=>id&&db.collection("warehouse_deletions").doc(fbid(id)).delete()),
+    setLayout:gw(l=>l&&db.collection("warehouse_layouts").doc(fbid(l.id)).set(l)),
+    delLayout:gd(id=>db.collection("warehouse_layouts").doc(fbid(id)).delete()),
+    setCarton:gw(c=>c&&db.collection("warehouse_cartons").doc(fbid(c.id)).set(c)),
+    delCarton:gd(id=>db.collection("warehouse_cartons").doc(fbid(id)).delete()),
+    setZone:gw(z=>z&&db.collection("warehouse_zones").doc(fbid(z.id)).set(z)),
+    delZone:gd(id=>db.collection("warehouse_zones").doc(fbid(id)).delete()),
+    setInv:gw(r=>r&&db.collection("inventory").doc(fbid(r.id)).set(r)),
+    delInv:gd(id=>db.collection("inventory").doc(fbid(id)).delete()),
+    setMove:gw(m=>m&&db.collection("stock_moves").doc(fbid(m.id)).set(m)),
+    delMove:gd(id=>db.collection("stock_moves").doc(fbid(id)).delete())
   };
 })();
+if(typeof window.__renderQuota==="function")window.__renderQuota();
 
 /* ---------- wire export buttons ---------- */
 document.getElementById("expDash").addEventListener("click",exportDash);
