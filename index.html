@@ -20413,14 +20413,21 @@ function paymentReceivedForOrder(orderId){return paymentEntries.filter(p=>String
 function paymentClearOrphans(){
   const liveBatches=new Set(importBatches.map(b=>String(b.id)));
   const dead=new Set((deletedBatchIds||[]).map(String));
-  // orphan = payment row tied to a batch that was deleted, or to a batch id that no longer exists
-  const orphans=paymentEntries.filter(p=>{const b=String(p.batchId||"");return b&&(dead.has(b)||!liveBatches.has(b));});
-  if(!orphans.length){toast("No orphaned payment rows found.");return;}
-  if(!confirm("Remove "+orphans.length+" payment row(s) whose import was deleted?\n\nThese are leftover statement references from deleted imports."))return;
+  // orphan = payment row tied to a deleted/unknown batch, OR an Amazon fee-only row
+  // (gross ~ 0 and a negative received) — a pure fee deduction, not a real receivable.
+  const orphans=paymentEntries.filter(p=>{
+    const b=String(p.batchId||"");
+    const batchOrphan=b&&(dead.has(b)||!liveBatches.has(b));
+    const feeOnly=platformIdFromName(p.platform)==="amazon"&&Math.abs(nnum(p.gross))<0.01&&nnum(p.received)<0;
+    return batchOrphan||feeOnly;
+  });
+  if(!orphans.length){toast("No orphaned or fee-only payment rows found.");return;}
+  const feeCount=orphans.filter(p=>Math.abs(nnum(p.gross))<0.01&&nnum(p.received)<0).length;
+  if(!confirm("Remove "+orphans.length+" payment row(s)?\n\n"+feeCount+" are Amazon fee-only rows (no sale, just a fee) and the rest are leftovers from deleted imports."))return;
   const ids=new Set(orphans.map(p=>p.id));
   paymentEntries=paymentEntries.filter(p=>!ids.has(p.id));
   save();orphans.forEach(p=>Cloud.delPay(p.id));renderFinanceAll();renderRecords();
-  toast("Removed "+orphans.length+" orphaned payment row(s).");
+  toast("Removed "+orphans.length+" payment row(s).");
 }
 function paymentRefsForOrder(orderId){return [...new Set(paymentEntries.filter(p=>String(p.orderId||"")===String(orderId||"")).map(p=>p.reference).filter(Boolean))].join(", ");}
 function paymentExpected(r){const v=nnum(r.netAfterRefund)+nnum(r.commission)+nnum(r.delivery)+nnum(r.otherOrder)+nnum(r.subsidy);return Math.abs(v)>0.0001?v:nnum(r.netAfterRefund);}
@@ -20429,12 +20436,12 @@ function hasPaymentDataForPlatform(platform){const id=platformIdFromName(platfor
 function manualPaymentStatus(o){return o&&o.status==="paid"?"Paid":"Pending";}
 function paymentStatusFor(r,received){
   if(!r.matched)return "Unmatched";if(r.status==="Refund")return "Refund";
-  const expected=paymentExpected(r);
-  if(Math.abs(received)>0.0001&&Math.abs(received-expected)<=1)return "Paid";
-  if(Math.abs(received)>0.0001)return "Partial";
-  // Amazon: present in the imported report but no settlement row -> money already received.
-  if(platformIdFromName(r.platform)==="amazon"&&amazonReportHasOrder(r.orderId))return "Paid";
-  return "Pending";
+  // Reference-based status (Noon PS refs + Amazon settlement/report):
+  // if the order shows up in an imported statement/settlement, the money has been paid out.
+  // We don't try to reconcile exact amounts — marketplace fees/ads make the net differ from our expected.
+  const hasRef=!!(r.reference&&String(r.reference).trim());
+  const inAmazonReport=platformIdFromName(r.platform)==="amazon"&&amazonReportHasOrder(r.orderId);
+  return (hasRef||inAmazonReport)?"Paid":"Pending";
 }
 function orderLineSummary(o,key){
   if(!o||!Array.isArray(o.lines)||!o.lines.length)return "";
@@ -20445,9 +20452,10 @@ function pnlStatus(o,refundGross,expectedPayment,platform){
   if(refundGross<0)return "Refund";
   if(o&&(!isStatementPaymentPlatform(platform)||!hasPaymentDataForPlatform(platform)))return manualPaymentStatus(o);
   if(o){
-    const received=paymentReceivedForOrder(o.id),expected=Math.abs(nnum(expectedPayment))>0.0001?nnum(expectedPayment):0;
-    if(Math.abs(received)>0.0001&&(!expected||Math.abs(received-expected)<=1))return "Paid";
-    if(Math.abs(received)>0.0001)return "Partial";
+    // Reference-based: an order that appears in an imported statement/settlement is Paid.
+    const hasRef=!!(paymentRefsForOrder(o.id)||"").trim();
+    const inAmazonReport=platformIdFromName(platform)==="amazon"&&amazonReportHasOrder(o.id);
+    if(hasRef||inAmazonReport)return "Paid";
   }
   return "Pending";
 }
@@ -20477,8 +20485,9 @@ function moneyTotal(rows,valueKey){return fmt(rows.reduce((sum,r)=>sum+nnum(r[va
 function finCard(label,value,sub,cls){return '<div class="fin-card"><div class="lab">'+esc(label)+'</div><div class="val '+(cls||"")+'">'+esc(value)+'</div><div class="sub">'+esc(sub||"")+'</div></div>';}
 function syncImportHistory(){
   const known=new Set(importBatches.map(b=>String(b.id))),dead=new Set((deletedBatchIds||[]).map(String)),groups={};let changed=false;
-  financeEntries.forEach(e=>{if(!e.batchId||dead.has(String(e.batchId)))return;const id=String(e.batchId),g=groups[id]||(groups[id]={id,fileName:e.fileName||"Imported report",platform:e.platform||"unknown",count:0,createdAt:e.createdAt||""});g.count++;if(e.createdAt&&(!g.createdAt||e.createdAt<g.createdAt))g.createdAt=e.createdAt;});
-  Object.values(groups).forEach(g=>{if(known.has(g.id))return;const b={id:g.id,fileName:g.fileName,platform:g.platform,rows:g.count,imported:g.count,skipped:0,createdAt:g.createdAt};importBatches.push(b);try{if(typeof Cloud!=="undefined"&&Cloud.setBatch)Cloud.setBatch(b);}catch(_){}changed=true;});
+  const scan=(list,kind)=>list.forEach(e=>{if(!e.batchId||dead.has(String(e.batchId)))return;const id=String(e.batchId),g=groups[id]||(groups[id]={id,fileName:e.fileName||"Imported report",platform:e.platform||"unknown",count:0,createdAt:e.createdAt||"",kind});g.count++;if(e.createdAt&&(!g.createdAt||e.createdAt<g.createdAt))g.createdAt=e.createdAt;});
+  scan(financeEntries,"finance");scan(paymentEntries,"payment");
+  Object.values(groups).forEach(g=>{if(known.has(g.id))return;const b={id:g.id,fileName:g.fileName,platform:g.platform,rows:g.count,imported:g.count,skipped:0,createdAt:g.createdAt,kind:g.kind};importBatches.push(b);try{if(typeof Cloud!=="undefined"&&Cloud.setBatch)Cloud.setBatch(b);}catch(_){}changed=true;});
   if(changed)Store.set("nod_import_batches",importBatches);
 }
 function renderFinanceHistory(){
@@ -20550,12 +20559,15 @@ function paymentReceivableRows(){
   const orderSet=new Set(pnl.map(r=>String(r.id)));
   const rows=pnl.map(r=>{
     const expected=paymentExpected(r);
+    const reference=paymentRefsForOrder(r.id);
     let received=paymentReceivedForOrder(r.id);
-    // Amazon: if a settlement TXT already provides real received/reference for this order, use it.
-    // Only when there is NO settlement row do we treat a report-present order as auto-settled.
+    // Amazon report-order with no explicit settlement row -> treat expected as received.
     if(platformIdFromName(r.platform)==="amazon"&&amazonReportHasOrder(r.id)&&Math.abs(received)<0.0001)received=expected;
-    const pending=expected-received,status=paymentStatusFor(r,received);
-    return{type:"order",platform:r.platform,country:r.country||"",customerName:r.customerName||"(no customer)",customerId:r.customerId||"",date:r.date,orderId:r.id,reference:paymentRefsForOrder(r.id),expected,received,pending,status,matched:true};
+    const status=paymentStatusFor({...r,reference,orderId:r.id});
+    // Reference-based: Paid rows are fully settled (show sale amount as received, no pending).
+    if(status==="Paid"&&Math.abs(received)<0.0001)received=expected;
+    const pending=status==="Paid"?0:expected;
+    return{type:"order",platform:r.platform,country:r.country||"",customerName:r.customerName||"(no customer)",customerId:r.customerId||"",date:r.date,orderId:r.id,reference,expected,received:status==="Paid"?expected:received,pending,status,matched:true};
   });
   paymentEntries.filter(p=>p.orderId&&!orderSet.has(String(p.orderId))).forEach(p=>{
     const o=orderById(p.orderId);
@@ -20586,8 +20598,12 @@ function renderPayments(){
   const rows=filteredPaymentRows(),matched=rows.filter(r=>r.matched),paid=matched.filter(r=>r.status==="Paid").length,pendingRows=matched.filter(r=>r.status==="Pending"||r.status==="Partial");
   const totalExpected=matched.reduce((s,r)=>s+nnum(r.expected),0),totalReceived=matched.reduce((s,r)=>s+nnum(r.received),0),totalPending=pendingRows.reduce((s,r)=>s+Math.max(0,nnum(r.pending)),0),unmatched=rows.filter(r=>!r.matched).length;
   document.getElementById("paymentEntryCount").textContent=paymentEntries.length+" payment rows";
-  // overhead / fee breakdown from finance overhead entries (advertising, storage, other fees)
-  const ovh=financeEntries.filter(e=>e.scope==="overhead"&&Math.abs(nnum(e.overhead))>0.0001);
+  // overhead / fee breakdown — respect the same platform / period / country filters as the ledger
+  const pf=document.getElementById("paymentPlatform").value,yf=document.getElementById("paymentYear").value,mf=document.getElementById("paymentMonth").value,cf=document.getElementById("paymentCountry").value;
+  const ovh=financeEntries.filter(e=>e.scope==="overhead"&&Math.abs(nnum(e.overhead))>0.0001
+    &&(pf==="all"||platformIdFromName(e.platform)===pf)
+    &&dateInPeriod(e.date,yf,mf)
+    &&(cf==="all"||String(e.country||"")===cf));
   const adsTot=ovh.filter(e=>String(e.category)==="ads").reduce((s,e)=>s+nnum(e.overhead),0);
   const storeTot=ovh.filter(e=>String(e.category)==="warehouse"||String(e.category)==="storage").reduce((s,e)=>s+nnum(e.overhead),0);
   const otherTot=ovh.filter(e=>!["ads","warehouse","storage"].includes(String(e.category))).reduce((s,e)=>s+nnum(e.overhead),0);
@@ -20794,6 +20810,8 @@ async function previewPaymentFile(){
 function confirmPaymentImport(){
   if(!pendingPaymentImport)return;const p=pendingPaymentImport,batchId="paybatch_"+uid();
   p.fresh.forEach(e=>{e.batchId=batchId;paymentEntries.push(e);Cloud.setPay(e);});
+  const b={id:batchId,fileName:p.fileName||"Payment statement",platform:p.platform||"unknown",rows:p.rows.length,imported:p.fresh.length,skipped:p.rows.length-p.fresh.length,createdAt:new Date().toISOString(),kind:"payment"};
+  importBatches.push(b);Cloud.setBatch(b);
   save();pendingPaymentImport=null;document.getElementById("payImportActions").style.display="none";document.getElementById("payFile").value="";
   document.getElementById("payPreview").textContent="Payment import complete. Order P&L status and receivables are updated.";renderFinanceAll();renderRecords();renderDash();toast(p.fresh.length+" payment rows imported.");
 }
