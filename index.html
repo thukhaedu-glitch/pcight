@@ -19622,8 +19622,11 @@ function renderDash(){
   const otherOverheadExpense=netOverheadCharge(fin.filter(e=>e.scope==="overhead"&&e.category!=="ads"&&e.category!=="warehouse"));
   const platformFees=commissionExpense+deliveryExpense+otherOrderExpense,overheadExpense=adsExpense+warehouseExpense+otherOverheadExpense,totalExpense=platformFees+overheadExpense;
   const platformAdjustment=platformNet+platformFees;
-  const contribution=grossProfit+platformNet,finalNet=contribution+overheadNet;
+  const contribution=grossProfit+platformNet;
   const exportOrderExpense=-(commissionNet+deliveryNet+otherOrderNet),salesExVat=amount-vatTot,exportNetProfit=salesExVat-costTot-exportOrderExpense;
+  // Final net profit = the net profit shown in the P&L, minus marketing/advertising overhead.
+  // (Must be derived from exportNetProfit so the breakdown reads consistently: Net profit − Marketing = Final.)
+  const finalNet=exportNetProfit-overheadExpense;
   const grossMarginBefore=salesExVat?baseProfit/salesExVat:null,grossMarginAfter=netSalesExVat?grossProfit/netSalesExVat:null,netMargin=salesExVat?exportNetProfit/salesExVat:null,finalNetMargin=salesExVat?finalNet/salesExVat:null;
   const platformCalcParts=["Commission "+dashMoney(commissionExpense),"Delivery "+dashMoney(deliveryExpense),"Other "+dashMoney(otherOrderExpense)];
   const expenseCalcParts=["Platform "+dashMoney(platformFees),"Ads "+dashMoney(adsExpense),"Warehouse "+dashMoney(warehouseExpense),"Other "+dashMoney(otherOverheadExpense)];
@@ -19662,7 +19665,7 @@ function renderDash(){
   if(dashShowNet)breakHtml+=brow("Refunds",refundAmount,{minus:true,cls:"color:var(--neg)",pctSales:true})+brow("Net sales (incl. VAT)",netSalesInclVat,{pctSales:true})+brow("VAT after refunds",adjustedVat,{cls:"color:var(--neg)",pctText:"5% UAE VAT"})+brow("Net sales (ex VAT)",netSalesExVat,{pctSales:true})+brow("Net product cost after refunds",netProductCost,{minus:true,cls:"color:var(--neg)",pctSales:true})+brow("Gross profit after refunds",grossProfit,{bold:true,cls:grossProfit>=0?"color:var(--pos)":"color:var(--neg)",pctSales:true})+prow("Gross margin after refunds",grossMarginAfter,{cls:grossProfit>=0?"color:var(--pos)":"color:var(--neg)"});
   breakHtml+=brow("Platform fees",platformFees,{minus:true,cls:"color:var(--neg)",pctSales:true});
   if(Math.abs(platformAdjustment)>0.005)breakHtml+=brow(platformAdjustment>=0?"Fee credits / subsidy":"Extra platform adjustments",-platformAdjustment,{minus:true,cls:platformAdjustment>=0?"color:var(--pos)":"color:var(--neg)",pctSales:true,pctValue:platformAdjustment});
-  breakHtml+=brow("Net profit",exportNetProfit,{bold:true,cls:exportNetProfit>=0?"color:var(--pos)":"color:var(--neg)",pctSales:true})+prow("Net margin",netMargin,{bold:true,cls:exportNetProfit>=0?"color:var(--pos)":"color:var(--neg)"});
+  breakHtml+=brow("Net profit",exportNetProfit,{bold:true,cls:exportNetProfit>=0?"color:var(--pos)":"color:var(--neg)",pctText:dashPct(netMargin)})+prow("Net margin",netMargin,{bold:true,cls:exportNetProfit>=0?"color:var(--pos)":"color:var(--neg)"});
   if(dashFinalOpen){breakHtml+=brow("Marketing / advertising",overheadExpense,{minus:true,cls:"color:var(--neg)",pctSales:true});if(dashShowNet)breakHtml+=brow("Final net profit",finalNet,{bold:true,cls:finalNet>=0?"color:var(--pos)":"color:var(--neg)"})+prow("Final net margin",finalNetMargin,{bold:true,cls:finalNet>=0?"color:var(--pos)":"color:var(--neg)"});}
   document.getElementById("dashBreak").innerHTML=breakHtml;
   const expenseRows=[["Commission",commissionExpense],["Delivery / fulfilment",deliveryExpense],["Other order fees",otherOrderExpense],["Advertising (net)",adsExpense],["Warehouse / storage",warehouseExpense],["Other marketing / advertising",otherOverheadExpense]];
@@ -20370,7 +20373,8 @@ async function paymentFileRows(file){
 }
 function detectPaymentFormat(rows){
   const keys=Object.keys(rows[0]||{}).map(salesHeaderKey),has=n=>keys.includes(salesHeaderKey(n));
-  if(has("settlement-id")&&has("order-id")&&has("amount-type"))return "amazon_payment";
+  if(has("settlement-id")&&has("order-id")&&has("amount-type"))return "amazon_payment";        // V2 flat (amount-type/amount)
+  if(has("settlement-id")&&has("order-id")&&(has("price-amount")||has("item-related-fee-amount")))return "amazon_payment_v1"; // V1 wide (column-per-fee)
   if(has("Contract")&&(has("Reference")||has("Reference Number"))&&has("Transaction")&&has("Total Due"))return "noon_statement";
   return "";
 }
@@ -20389,6 +20393,22 @@ function normalizeAmazonPayment(rows,fileName){
   });
   // Only keep orders that had a real sale (principal). Fee-only order rows are pure deductions,
   // not receivables — they belong to the P&L/overhead side, not the payment ledger.
+  return Object.values(groups).filter(g=>g.hasPrincipal).map(g=>({id:"pay_"+hashText("pay|"+g.reference+"|"+g.orderId),rowKey:"pay|amazon|"+g.reference+"|"+g.orderId,batchId:"",source:"payment_statement",fileName:fileName||"",platform:"amazon",date:g.date,orderId:g.orderId,reference:g.reference,statementRef:g.statementRef,received:g.received,gross:g.gross,fees:g.fees,rowCount:g.rows,createdAt:new Date().toISOString()}));
+}
+function normalizeAmazonPaymentV1(rows,fileName){
+  // Amazon "wide" settlement: one column per fee category instead of amount-type/amount pairs.
+  const groups={};
+  rows.forEach(r=>{
+    const orderId=String(paymentCell(r,["order-id","Order ID"])).trim();if(!orderId)return;
+    const settlement=String(paymentCell(r,["settlement-id","Settlement ID"])).trim();
+    const key="amazon|"+settlement+"|"+orderId,g=groups[key]||(groups[key]={orderId,reference:settlement,statementRef:settlement,date:paymentIsoDate(paymentCell(r,["deposit-date","posted-date"])),received:0,gross:0,fees:0,rows:0,hasPrincipal:false});
+    const price=nnum(paymentCell(r,["price-amount"])),priceType=String(paymentCell(r,["price-type"])).trim().toLowerCase();
+    const itemFee=nnum(paymentCell(r,["item-related-fee-amount"])),shipFee=nnum(paymentCell(r,["shipment-fee-amount"])),orderFee=nnum(paymentCell(r,["order-fee-amount"])),miscFee=nnum(paymentCell(r,["misc-fee-amount"])),otherFee=nnum(paymentCell(r,["other-fee-amount"])),promo=nnum(paymentCell(r,["promotion-amount"])),other=nnum(paymentCell(r,["other-amount"])),direct=nnum(paymentCell(r,["direct-payment-amount"]));
+    if(Math.abs(price)>0.0001){if(priceType==="principal"){g.gross+=price;g.hasPrincipal=true;}else g.gross+=price;g.received+=price;}
+    const fee=itemFee+shipFee+orderFee+miscFee+otherFee+promo+other+direct;
+    if(Math.abs(fee)>0.0001){g.fees+=fee;g.received+=fee;}
+    g.rows++;
+  });
   return Object.values(groups).filter(g=>g.hasPrincipal).map(g=>({id:"pay_"+hashText("pay|"+g.reference+"|"+g.orderId),rowKey:"pay|amazon|"+g.reference+"|"+g.orderId,batchId:"",source:"payment_statement",fileName:fileName||"",platform:"amazon",date:g.date,orderId:g.orderId,reference:g.reference,statementRef:g.statementRef,received:g.received,gross:g.gross,fees:g.fees,rowCount:g.rows,createdAt:new Date().toISOString()}));
 }
 function normalizeNoonPayment(rows,fileName){
@@ -20799,7 +20819,7 @@ async function previewPaymentFile(){
     const rows=await paymentFileRows(file),format=detectPaymentFormat(rows),detected=format.startsWith("noon")?"noon":format.startsWith("amazon")?"amazon":"",chosen=document.getElementById("payPlatform").value,platform=chosen==="auto"?detected:chosen;
     if(!detected)throw new Error("This statement does not match a supported Amazon TXT or Noon statement file.");
     if(chosen!=="auto"&&chosen!==detected)throw new Error("Selected platform does not match the statement columns.");
-    const entries=format==="amazon_payment"?normalizeAmazonPayment(rows,file.name):normalizeNoonPayment(rows,file.name);
+    const entries=format==="amazon_payment"?normalizeAmazonPayment(rows,file.name):format==="amazon_payment_v1"?normalizeAmazonPaymentV1(rows,file.name):normalizeNoonPayment(rows,file.name);
     const existing=new Set(paymentEntries.map(paymentIdentity)),seen=new Set(existing),fresh=entries.filter(e=>{const k=paymentIdentity(e);if(!k||seen.has(k))return false;seen.add(k);return true;});
     const matched=fresh.filter(e=>e.orderId&&orderById(e.orderId)).length,unmatched=fresh.length-matched,total=fresh.reduce((s,e)=>s+nnum(e.received),0);
     pendingPaymentImport={fileName:file.name,platform,format,rows:entries,fresh};
