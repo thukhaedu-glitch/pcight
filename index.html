@@ -369,6 +369,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
     <button class="navbtn" data-view="refunds"><span class="ic">↩</span> Refunds</button>
     <button class="navbtn" data-view="expenses"><span class="ic">−</span> Expenses</button>
     <button class="navbtn" data-view="insights"><span class="ic">◆</span> Monthly insights</button>
+    <button class="navbtn" data-view="target"><span class="ic">◎</span> Targets</button>
     <button class="navbtn" data-view="export"><span class="ic">⇪</span> Export</button>
     <button class="navbtn" data-view="barcodes"><span class="ic">▥</span> Inventory level</button>
     <button class="navbtn" data-view="productsetup"><span class="ic">▤</span> Product setup</button>
@@ -16611,10 +16612,40 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 
     <!-- ============ MONTHLY INSIGHTS ============ -->
     <section class="view" id="view-insights">
-      <div class="head"><div><div class="eyebrow">Finance</div><h1>Monthly insights</h1><p>Contribution and final net profit by platform and month.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" id="expInsights">⬇ Excel</button><button class="btn btn-pri" id="ceoReportBtn">◆ CEO Report</button></div></div>
+      <div class="head"><div><div class="eyebrow">Finance</div><h1>Monthly insights</h1><p>Contribution and final net profit by platform and month.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" id="expInsights">⬇ Excel</button><button class="btn btn-pri" id="ceoReportBtn">◆ CEO Report</button><button class="btn btn-ghost" id="newCeoReportBtn">⬇ New CEO Report (Excel)</button></div></div>
       <div class="filterbar" style="margin:14px 0 18px"><select class="inp" id="insPlatform" style="width:auto;min-width:150px"><option value="all" selected="">All platforms</option><option value="noon">Noon</option><option value="amazon">Amazon</option><option value="website">Website</option><option value="shared">Shared</option></select><select class="inp" id="insMonth" style="width:auto;min-width:150px"><option value="all">All months</option><option value="2026-07">Jul 26</option><option value="2026-06">Jun 26</option><option value="2026-05">May 26</option><option value="2026-04">Apr 26</option><option value="2026-03">Mar 26</option><option value="2026-02">Feb 26</option><option value="2026-01">Jan 26</option><option value="2025-12">Dec 25</option><option value="2025-11">Nov 25</option><option value="2025-10">Oct 25</option></select></div>
       <div class="fin-grid" id="insightKpis" style="margin-top:18px"><div class="fin-card"><div class="lab">Periods</div><div class="val ">19</div><div class="sub">filtered month / platform rows</div></div><div class="fin-card"><div class="lab">Net sales</div><div class="val ">48,470.38</div><div class="sub">after refunds and VAT</div></div><div class="fin-card"><div class="lab">Marketing / advertising</div><div class="val ">5,054.78</div><div class="sub">net charges after credits</div></div><div class="fin-card"><div class="lab">Final net profit</div><div class="val ">10,607.68</div><div class="sub">contribution after marketing / advertising</div></div></div>
       <div class="panel"><div class="panel-h"><h3>Monthly performance</h3><span class="tag">signed ledger</span></div><div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="insightTable" class="compact-table"><thead><tr><th>Month</th><th>Platform</th><th class="num">Gross sales</th><th class="num">Refunds</th><th class="num">VAT</th><th class="num">Net sales</th><th class="num">Product cost</th><th class="num">Commission</th><th class="num">Delivery</th><th class="num">Ads</th><th class="num">Warehouse</th><th class="num">Contribution</th><th class="num">Net profit</th><th class="num">Net margin</th></tr></thead><tbody><tr><td>Jul 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">5,120.00</td><td class="num neg">-59.00</td><td class="num">232.00</td><td class="num">4,829.00</td><td class="num">2,317.60</td><td class="num">-1,156.51</td><td class="num">-211.59</td><td class="num">727.56</td><td class="num">70.24</td><td class="num pos">1,168.87</td><td class="num pos">288.11</td><td class="num">5.97%</td></tr><tr><td>Jul 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">5,234.00</td><td class="num neg">0.00</td><td class="num">228.00</td><td class="num">5,006.00</td><td class="num">2,766.54</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">2,239.46</td><td class="num pos">2,239.46</td><td class="num">44.74%</td></tr><tr><td>Jun 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">2,821.00</td><td class="num neg">-475.00</td><td class="num">111.71</td><td class="num">2,234.29</td><td class="num">861.56</td><td class="num">-568.31</td><td class="num">-371.77</td><td class="num">643.73</td><td class="num">38.51</td><td class="num pos">462.24</td><td class="num neg">-220.00</td><td class="num">-9.85%</td></tr><tr><td>Jun 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">6,419.00</td><td class="num neg">-306.00</td><td class="num">247.29</td><td class="num">5,865.71</td><td class="num">2,893.20</td><td class="num">-578.64</td><td class="num">-1,405.60</td><td class="num">899.47</td><td class="num">0.00</td><td class="num pos">1,329.13</td><td class="num pos">429.66</td><td class="num">7.33%</td></tr><tr><td>May 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">3,786.30</td><td class="num neg">-127.00</td><td class="num">174.25</td><td class="num">3,485.05</td><td class="num">1,880.03</td><td class="num">-599.72</td><td class="num">-279.86</td><td class="num">371.93</td><td class="num">36.43</td><td class="num pos">740.13</td><td class="num pos">331.77</td><td class="num">9.52%</td></tr><tr><td>May 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">5,033.00</td><td class="num neg">0.00</td><td class="num">229.29</td><td class="num">4,803.71</td><td class="num">1,492.05</td><td class="num">-380.70</td><td class="num">-1,059.90</td><td class="num">486.61</td><td class="num">0.00</td><td class="num pos">2,101.87</td><td class="num pos">1,931.43</td><td class="num">40.21%</td></tr><tr><td>Apr 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">1,779.10</td><td class="num neg">-204.50</td><td class="num">74.98</td><td class="num">1,499.62</td><td class="num">590.82</td><td class="num">-367.95</td><td class="num">-75.61</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">489.46</td><td class="num pos">489.46</td><td class="num">32.64%</td></tr><tr><td>Apr 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">5,309.00</td><td class="num neg">0.00</td><td class="num">173.38</td><td class="num">5,135.62</td><td class="num">2,044.86</td><td class="num">-557.89</td><td class="num">-1,410.75</td><td class="num">376.81</td><td class="num">0.00</td><td class="num pos">1,531.19</td><td class="num pos">1,154.38</td><td class="num">22.48%</td></tr><tr><td>Apr 26</td><td><span class="pill p-manual">Website</span></td><td class="num">594.00</td><td class="num neg">0.00</td><td class="num">28.29</td><td class="num">565.71</td><td class="num">190.20</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">375.51</td><td class="num pos">375.51</td><td class="num">66.38%</td></tr><tr><td>Mar 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">750.00</td><td class="num neg">0.00</td><td class="num">35.71</td><td class="num">714.29</td><td class="num">175.52</td><td class="num">-191.00</td><td class="num">-58.81</td><td class="num">62.15</td><td class="num">7.44</td><td class="num pos">296.63</td><td class="num pos">227.04</td><td class="num">31.78%</td></tr><tr><td>Mar 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">3,744.00</td><td class="num neg">-389.00</td><td class="num">103.00</td><td class="num">3,252.00</td><td class="num">1,329.07</td><td class="num">-329.92</td><td class="num">-763.91</td><td class="num">110.87</td><td class="num">0.00</td><td class="num pos">1,022.52</td><td class="num pos">911.65</td><td class="num">28.03%</td></tr><tr><td>Feb 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">2,747.00</td><td class="num neg">-1,180.00</td><td class="num">74.62</td><td class="num">1,492.38</td><td class="num">502.80</td><td class="num">-130.54</td><td class="num">-91.89</td><td class="num">266.21</td><td class="num">0.00</td><td class="num pos">738.90</td><td class="num pos">472.69</td><td class="num">31.67%</td></tr><tr><td>Feb 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">2,983.00</td><td class="num neg">0.00</td><td class="num">120.76</td><td class="num">2,862.24</td><td class="num">1,185.56</td><td class="num">-311.98</td><td class="num">-772.13</td><td class="num">289.15</td><td class="num">0.00</td><td class="num pos">777.32</td><td class="num pos">488.17</td><td class="num">17.06%</td></tr><tr><td>Feb 26</td><td><span class="pill p-manual">Website</span></td><td class="num">2,261.00</td><td class="num neg">0.00</td><td class="num">107.67</td><td class="num">2,153.33</td><td class="num">1,076.58</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">1,076.75</td><td class="num pos">1,076.75</td><td class="num">50.00%</td></tr><tr><td>Jan 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">375.00</td><td class="num neg">-89.00</td><td class="num">13.62</td><td class="num">272.38</td><td class="num">138.53</td><td class="num">-9.34</td><td class="num">-114.47</td><td class="num">199.27</td><td class="num">0.00</td><td class="num pos">30.04</td><td class="num neg">-169.23</td><td class="num">-62.13%</td></tr><tr><td>Jan 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">3,977.00</td><td class="num neg">0.00</td><td class="num">147.76</td><td class="num">3,829.24</td><td class="num">1,730.43</td><td class="num">-628.15</td><td class="num">-784.34</td><td class="num">300.76</td><td class="num">0.00</td><td class="num pos">882.81</td><td class="num pos">582.05</td><td class="num">15.20%</td></tr><tr><td>Dec 25</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">109.00</td><td class="num neg">0.00</td><td class="num">5.19</td><td class="num">103.81</td><td class="num">0.00</td><td class="num">-12.50</td><td class="num">-16.80</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">84.51</td><td class="num pos">84.51</td><td class="num">81.41%</td></tr><tr><td>Nov 25</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">384.30</td><td class="num neg">0.00</td><td class="num">18.30</td><td class="num">366.00</td><td class="num">0.00</td><td class="num">-43.14</td><td class="num">-16.28</td><td class="num">177.44</td><td class="num">0.00</td><td class="num pos">315.13</td><td class="num pos">137.69</td><td class="num">37.62%</td></tr><tr><td>Oct 25</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">0.00</td><td class="num neg">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">223.41</td><td class="num">0.00</td><td class="num pos">0.00</td><td class="num neg">-223.41</td><td class="num">0.00%</td></tr></tbody></table></div></div></div>
+    </section>
+
+    <!-- ============ TARGETS ============ -->
+    <section class="view" id="view-target">
+      <div class="head"><div><div class="eyebrow">Planning</div><h1>Targets &amp; Achievement</h1><p>Set monthly revenue targets and track weekly, monthly, country and platform performance against them.</p></div></div>
+
+      <div class="panel" style="margin-bottom:18px">
+        <div class="panel-h"><h3>Set a monthly target</h3></div>
+        <div class="panel-b">
+          <div class="filterbar" style="margin:0 0 12px">
+            <input type="month" class="inp" id="tgtMonth" style="width:auto">
+            <select class="inp" id="tgtCountry" style="width:auto;min-width:150px"><option value="All">All (UAE+KSA)</option><option value="UAE">UAE</option><option value="KSA">KSA</option></select>
+            <input type="number" class="inp" id="tgtAmount" placeholder="Target revenue (incl. VAT)" style="width:auto;min-width:200px">
+            <button class="btn btn-pri" id="tgtSaveBtn">Save target</button>
+          </div>
+          <div class="tbl-wrap"><table id="tgtTable" class="compact-table"></table></div>
+        </div>
+      </div>
+
+      <div class="filterbar" style="margin:0 0 18px"><select class="inp" id="tgtViewCountry" style="width:auto;min-width:150px"><option value="All">All (UAE+KSA)</option><option value="UAE">UAE</option><option value="KSA">KSA</option></select><select class="inp" id="tgtViewMonth" style="width:auto;min-width:150px"></select></div>
+
+      <div class="fin-grid" id="tgtKpis" style="margin-bottom:18px"></div>
+
+      <div class="panel" style="margin-bottom:18px"><div class="panel-h"><h3>Monthly achievement</h3><span class="tag">actual vs target</span></div><div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="tgtMonthlyTable" class="compact-table"></table></div></div></div>
+
+      <div class="panel" style="margin-bottom:18px"><div class="panel-h"><h3>Weekly achievement</h3><span class="tag" id="tgtWeeklyLabel">selected month</span></div><div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="tgtWeeklyTable" class="compact-table"></table></div></div></div>
+
+      <div class="panel" style="margin-bottom:18px"><div class="panel-h"><h3>Country by country</h3><span class="tag">selected month</span></div><div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="tgtCountryTable" class="compact-table"></table></div></div></div>
+
+      <div class="panel"><div class="panel-h"><h3>Platform</h3><span class="tag">selected month · selected country</span></div><div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="tgtPlatformTable" class="compact-table"></table></div></div></div>
     </section>
 
     <!-- ============ EXPORT ============ -->
@@ -16974,6 +17005,7 @@ const DEFAULT_WAREHOUSES=[
   {id:"ksa_amazon",name:"KSA Amazon Warehouse",country:"KSA",type:"amazon",seed:true}
 ];
 let warehouses=Store.get("nod_warehouses",null);
+let targets=Store.get("nod_targets",[]);
 if(!Array.isArray(warehouses))warehouses=DEFAULT_WAREHOUSES.map(w=>({...w}));
 let deletedWarehouseIds=Store.get("nod_deleted_warehouses",[]);
 let inventoryRows=Store.get("nod_inventory",[]);
@@ -17064,7 +17096,7 @@ function dedupeLocal(){
 }
 function migrate(){dedupeLocal();save();}
 
-const save=()=>{Store.set("nod_products",products);Store.set("nod_customers",customers);Store.set("nod_orders",orders);Store.set("nod_finance",financeEntries);Store.set("nod_import_batches",importBatches);Store.set("nod_deleted_batches",deletedBatchIds);Store.set("nod_payments",paymentEntries);Store.set("nod_platforms",platforms);Store.set("nod_warehouses",warehouses);Store.set("nod_deleted_warehouses",deletedWarehouseIds);Store.set("nod_inventory",inventoryRows);Store.set("nod_stock_moves",stockMovements);Store.set("nod_warehouse_layouts",warehouseLayouts);Store.set("nod_warehouse_cartons",warehouseCartons);Store.set("nod_warehouse_zones",warehouseZones);Store.set("nod_active_layout_rack",activeLayoutRackId);Store.set("nod_warehouse_visual_mode",warehouseVisualMode);Store.set("nod_warehouse_tab",warehouseTab);Store.set("nod_warehouse_3d_state",wh3dState);Store.set("nod_inventory_page_tab",inventoryPageTab);};
+const save=()=>{Store.set("nod_products",products);Store.set("nod_customers",customers);Store.set("nod_orders",orders);Store.set("nod_finance",financeEntries);Store.set("nod_import_batches",importBatches);Store.set("nod_deleted_batches",deletedBatchIds);Store.set("nod_payments",paymentEntries);Store.set("nod_platforms",platforms);Store.set("nod_warehouses",warehouses);Store.set("nod_deleted_warehouses",deletedWarehouseIds);Store.set("nod_inventory",inventoryRows);Store.set("nod_stock_moves",stockMovements);Store.set("nod_warehouse_layouts",warehouseLayouts);Store.set("nod_warehouse_cartons",warehouseCartons);Store.set("nod_warehouse_zones",warehouseZones);Store.set("nod_active_layout_rack",activeLayoutRackId);Store.set("nod_warehouse_visual_mode",warehouseVisualMode);Store.set("nod_warehouse_tab",warehouseTab);Store.set("nod_warehouse_3d_state",wh3dState);Store.set("nod_inventory_page_tab",inventoryPageTab);Store.set("nod_targets",targets);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fmt=n=>(isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmt4=n=>(isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:4,maximumFractionDigits:4});
@@ -17619,6 +17651,7 @@ document.querySelectorAll(".navbtn").forEach(b=>b.addEventListener("click",()=>{
   if(b.dataset.view==="dash")renderDash();
   if(b.dataset.view==="records")renderRecords();
   if(b.dataset.view==="export")renderExport();
+  if(b.dataset.view==="target")renderTarget();
   if(["barcodes","productsetup"].includes(b.dataset.view))renderSetup();
   if(b.dataset.view==="warehouses")renderWarehouses();
   if(b.dataset.view==="setup")renderSetup();
@@ -21160,6 +21193,216 @@ async function generateDailyReportExcel(){
     btn.disabled=false;btn.textContent=oldLabel;
   }
 }
+/* ================= TARGETS & ACHIEVEMENT ================= */
+function targetId(month,country){return month+"|"+country;}
+function targetFor(month,country){const t=targets.find(x=>x.id===targetId(month,country));return t?Number(t.amount)||0:null;}
+function upsertTarget(month,country,amount){
+  const id=targetId(month,country);
+  let t=targets.find(x=>x.id===id);
+  if(!t){t={id,month,country,amount:0};targets.push(t);}
+  t.amount=amount;t.updatedAt=new Date().toISOString();
+  save();Cloud.setTarget(t);
+}
+function removeTarget(id){targets=targets.filter(t=>t.id!==id);save();Cloud.delTarget(id);}
+// Actual revenue is VAT-inclusive and pulled straight from ceoReportChannelRows(), the same
+// definition used everywhere else in the app (Dashboard "Total sales", CEO Report "Total Sale").
+function targetActualByCountry(month,country){
+  return ceoReportChannelRows(month).filter(r=>country==="All"||r.country===country).reduce((s,r)=>s+r.gross,0);
+}
+function targetActualByPlatform(month,country){
+  const map={};
+  ceoReportChannelRows(month).filter(r=>country==="All"||r.country===country).forEach(r=>{map[r.platform]=(map[r.platform]||0)+r.gross;});
+  return map;
+}
+function targetWeeklyBreakdown(month,country){
+  const weeks={};
+  orders.filter(o=>(o.date||"").slice(0,7)===month&&(country==="All"||normalizeMarket(o.country)===country)).forEach(o=>{
+    const day=Number((o.date||"").slice(8,10))||1,wk=Math.ceil(day/7);
+    weeks[wk]=(weeks[wk]||0)+orderTotals(o).amount;
+  });
+  return weeks;
+}
+function renderTarget(){
+  const monthInput=document.getElementById("tgtMonth");
+  if(monthInput&&!monthInput.value)monthInput.value=todayStr().slice(0,7);
+  const tbl=document.getElementById("tgtTable");
+  if(tbl){
+    const sorted=[...targets].sort((a,b)=>b.month.localeCompare(a.month)||a.country.localeCompare(b.country));
+    tbl.innerHTML=sorted.length?'<thead><tr><th>Month</th><th>Country</th><th class="num">Target</th><th></th></tr></thead><tbody>'+
+      sorted.map(t=>'<tr><td>'+esc(monthLabel(t.month))+'</td><td>'+esc(t.country)+'</td><td class="num">'+fmt(t.amount)+'</td><td><button class="btn btn-ghost btn-sm" data-tgt-del="'+esc(t.id)+'">Delete</button></td></tr>').join("")+'</tbody>':
+      '<tbody><tr><td class="empty"><b>No targets set yet</b>Add a monthly target above.</td></tr></tbody>';
+  }
+  const viewCountrySel=document.getElementById("tgtViewCountry"),viewMonthSel=document.getElementById("tgtViewMonth");
+  const months=ceoReportMonths();
+  if(viewMonthSel){
+    const old=viewMonthSel.value;
+    viewMonthSel.innerHTML=months.slice().reverse().map(m=>'<option value="'+m+'">'+monthLabel(m)+'</option>').join("");
+    viewMonthSel.value=months.includes(old)?old:(months[months.length-1]||"");
+  }
+  const country=(viewCountrySel&&viewCountrySel.value)||"All";
+  const month=(viewMonthSel&&viewMonthSel.value)||"";
+  if(!month){["tgtKpis"].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML="";});return;}
+  const prevMonth=ceoPrevMonthKey(month);
+  const actual=targetActualByCountry(month,country);
+  const target=targetFor(month,country);
+  const achievement=target?actual/target:null;
+  const prevActual=prevMonth&&months.includes(prevMonth)?targetActualByCountry(prevMonth,country):null;
+  const vsLast=prevActual!=null&&prevActual!==0?((actual-prevActual)/Math.abs(prevActual))*100:null;
+  const kpis=document.getElementById("tgtKpis");
+  if(kpis)kpis.innerHTML=finCard("Actual revenue",fmt(actual),monthLabel(month)+" · "+country)+
+    finCard("Target",target==null?"—":fmt(target),"set for "+monthLabel(month))+
+    finCard("Achievement",achievement==null?"—":(achievement*100).toFixed(1)+"%",target?"actual ÷ target":"no target set",achievement==null?"":(achievement>=1?"pos":"neg"))+
+    finCard("vs last month",vsLast==null?"—":(vsLast>=0?"+":"")+vsLast.toFixed(1)+"%",prevMonth?monthLabel(prevMonth):"",vsLast==null?"":(vsLast>=0?"pos":"neg"));
+  const monthlyTbl=document.getElementById("tgtMonthlyTable");
+  if(monthlyTbl){
+    let prevA=null;
+    const rowsHtml=months.map(m=>{
+      const a=targetActualByCountry(m,country),t=targetFor(m,country),ach=t?a/t:null;
+      const delta=prevA!=null&&prevA!==0?((a-prevA)/Math.abs(prevA))*100:null;
+      const row='<tr><td>'+esc(monthLabel(m))+'</td><td class="num">'+fmt(a)+'</td><td class="num">'+(t==null?"—":fmt(t))+'</td><td class="num '+(ach==null?"":(ach>=1?"pos":"neg"))+'">'+(ach==null?"—":(ach*100).toFixed(1)+"%")+'</td><td class="num '+(delta==null?"":(delta>=0?"pos":"neg"))+'">'+(delta==null?"—":(delta>=0?"+":"")+delta.toFixed(1)+"%")+'</td></tr>';
+      prevA=a;return row;
+    }).reverse().join("");
+    monthlyTbl.innerHTML='<thead><tr><th>Month</th><th class="num">Actual</th><th class="num">Target</th><th class="num">Achievement</th><th class="num">vs last month</th></tr></thead><tbody>'+rowsHtml+'</tbody>';
+  }
+  const weeklyLabel=document.getElementById("tgtWeeklyLabel");
+  if(weeklyLabel)weeklyLabel.textContent=monthLabel(month)+" · "+country;
+  const weeklyTbl=document.getElementById("tgtWeeklyTable");
+  if(weeklyTbl){
+    const weeks=targetWeeklyBreakdown(month,country);
+    const parts=month.split("-").map(Number),y=parts[0],mo=parts[1];
+    const daysInMonth=new Date(y,mo,0).getDate(),weekCount=Math.ceil(daysInMonth/7);
+    let rowsHtml="";
+    for(let w=1;w<=weekCount;w++){
+      const daysInWeek=Math.min(7,daysInMonth-(w-1)*7);
+      const wTarget=target!=null?target*(daysInWeek/daysInMonth):null;
+      const a=weeks[w]||0,ach=wTarget?a/wTarget:null;
+      const startDay=(w-1)*7+1,endDay=Math.min(daysInMonth,w*7);
+      rowsHtml+='<tr><td>Week '+w+' ('+startDay+'-'+endDay+')</td><td class="num">'+fmt(a)+'</td><td class="num">'+(wTarget==null?"—":fmt(wTarget))+'</td><td class="num '+(ach==null?"":(ach>=1?"pos":"neg"))+'">'+(ach==null?"—":(ach*100).toFixed(1)+"%")+'</td></tr>';
+    }
+    weeklyTbl.innerHTML='<thead><tr><th>Week</th><th class="num">Actual</th><th class="num">Pro-rated target</th><th class="num">Achievement</th></tr></thead><tbody>'+rowsHtml+'</tbody>';
+  }
+  const countryTbl=document.getElementById("tgtCountryTable");
+  if(countryTbl){
+    const rowsHtml=["UAE","KSA"].map(c=>{
+      const a=targetActualByCountry(month,c),t=targetFor(month,c),ach=t?a/t:null;
+      return '<tr><td>'+c+'</td><td class="num">'+fmt(a)+'</td><td class="num">'+(t==null?"—":fmt(t))+'</td><td class="num '+(ach==null?"":(ach>=1?"pos":"neg"))+'">'+(ach==null?"—":(ach*100).toFixed(1)+"%")+'</td></tr>';
+    }).join("");
+    countryTbl.innerHTML='<thead><tr><th>Country</th><th class="num">Actual</th><th class="num">Target</th><th class="num">Achievement</th></tr></thead><tbody>'+rowsHtml+'</tbody>';
+  }
+  const platformTbl=document.getElementById("tgtPlatformTable");
+  if(platformTbl){
+    const map=targetActualByPlatform(month,country);
+    const total=Object.values(map).reduce((s,v)=>s+v,0);
+    const rowsHtml=Object.keys(map).filter(p=>Math.abs(map[p])>0.004).sort((a,b)=>map[b]-map[a]).map(p=>{
+      const v=map[p],share=total?v/total*100:0;
+      return '<tr><td>'+esc(platformNameFromId(p))+'</td><td class="num">'+fmt(v)+'</td><td class="num">'+share.toFixed(1)+'%</td></tr>';
+    }).join("");
+    platformTbl.innerHTML=rowsHtml?'<thead><tr><th>Platform</th><th class="num">Actual</th><th class="num">Share</th></tr></thead><tbody>'+rowsHtml+'</tbody>':'<tbody><tr><td class="empty"><b>No sales</b>No platform activity for '+esc(monthLabel(month))+'.</td></tr></tbody>';
+  }
+}
+document.getElementById("tgtSaveBtn").addEventListener("click",()=>{
+  const month=document.getElementById("tgtMonth").value,country=document.getElementById("tgtCountry").value,amount=Number(document.getElementById("tgtAmount").value)||0;
+  if(!month){toast("Pick a month first.",true);return;}
+  upsertTarget(month,country,amount);renderTarget();toast("Target saved.");
+});
+document.getElementById("tgtTable").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-tgt-del]");if(!btn)return;
+  removeTarget(btn.dataset.tgtDel);renderTarget();
+});
+["tgtViewCountry","tgtViewMonth"].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("change",renderTarget);});
+/* ================= NEW CEO REPORT (EXCEL TEMPLATE) ================= */
+const NEW_CEO_TEMPLATE_B64="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";
+function newCeoBase64ToArrayBuffer(b64){
+  const bin=atob(b64),len=bin.length,bytes=new Uint8Array(len);
+  for(let i=0;i<len;i++)bytes[i]=bin.charCodeAt(i);
+  return bytes.buffer;
+}
+// Same P&L base as the CEO Report / Target tab, but split by a single country ("All" = UAE+KSA
+// combined) instead of by channel row. Net Profit / Net Margin are written to match the
+// Dashboard's own "Net profit" / "Net margin" cards exactly: Sales ex VAT - COGS - order
+// expenses (commission + delivery + other order fees + subsidy credits combined) — this is
+// BEFORE marketing/ads is deducted (that's the Dashboard's separate "Final net profit").
+// "All Expense" and "Credit" are shown alongside as informational reference columns only.
+function newReportCountrySummary(month,country){
+  const rows=ceoReportChannelRows(month).filter(r=>country==="All"||r.country===country);
+  const sum=k=>rows.reduce((s,r)=>s+r[k],0);
+  const grossIncl=sum("gross"),salesExVat=sum("netSales"),cogs=sum("cost")-sum("costRecovery");
+  const platformFeesExclCredit=-(sum("commission")+sum("delivery")+sum("otherOrder")),credit=sum("subsidy");
+  const platformFeesInclCredit=platformFeesExclCredit-credit; // matches the Dashboard's exportOrderExpense
+  const warehouseOther=sum("warehouse")+sum("otherOverhead"),allExpense=platformFeesExclCredit+warehouseOther,marketing=sum("ads");
+  const netProfit=salesExVat-cogs-platformFeesInclCredit,netMargin=salesExVat?netProfit/salesExVat:null;
+  const grossProfit=salesExVat-cogs,grossMargin=salesExVat?grossProfit/salesExVat:null,ordersCount=sum("orders");
+  return {grossIncl,salesExVat,cogs,allExpense,marketing,credit,netProfit,netMargin,grossProfit,grossMargin,orders:ordersCount};
+}
+function newReportPiecesSold(month,country){
+  let qty=0;
+  orders.filter(o=>(o.date||"").slice(0,7)===month&&(country==="All"||normalizeMarket(o.country)===country)).forEach(o=>{(o.lines||[]).forEach(l=>{qty+=Number(l.qty)||0;});});
+  return qty;
+}
+// A SKU counts as a "New Listing" for a month if that month is the first time it was ever sold
+// (within the given country scope).
+function newReportReturns(month,country){
+  const list=financeEntries.filter(e=>(e.date||"").slice(0,7)===month&&(country==="All"||normalizeMarket(e.country)===country)&&(e.type==="refund"||e.scope==="refund"||nnum(e.salesInclVat)<0));
+  return new Set(list.map(e=>String(e.orderId||e.id||"")).filter(Boolean)).size;
+}
+function newReportSkuCount(month,country){
+  const set=new Set();
+  orders.filter(o=>(o.date||"").slice(0,7)===month&&(country==="All"||normalizeMarket(o.country)===country)).forEach(o=>(o.lines||[]).forEach(l=>{const bc=String(l.barcode||"").trim().toLowerCase();if(bc)set.add(bc);}));
+  return set.size;
+}
+async function buildNewCeoReportWorkbook(){
+  const wb=new ExcelJS.Workbook();
+  await wb.xlsx.load(newCeoBase64ToArrayBuffer(NEW_CEO_TEMPLATE_B64));
+  const sheetMap={"All":"All Online","UAE":"Sheet2","KSA":"Sheet3"};
+  const labelMap={"All":"All Online","UAE":"UAE","KSA":"KSA"};
+  let targetYear=null;
+  orders.forEach(o=>{const y=Number((o.date||"").slice(0,4));if(y&&(!targetYear||y>targetYear))targetYear=y;});
+  if(!targetYear)targetYear=new Date().getFullYear();
+  const allMonthsPresent=ceoReportMonths();
+  const pctCols=[4,10,15,16,18],moneyCols=[2,3,5,6,7,8,9,17];
+  ["All","UAE","KSA"].forEach(country=>{
+    const ws=wb.getWorksheet(sheetMap[country]);if(!ws)return;
+    if(country!=="All")ws.name=labelMap[country];
+    ws.getRow(1).getCell(13).value="Number of Pc"; // was "New Listing" in the template
+    let prevActual=null;
+    for(let m=1;m<=12;m++){
+      const mm=String(m).padStart(2,"0"),monthKey=targetYear+"-"+mm,row=ws.getRow(m+1);
+      const hasData=allMonthsPresent.includes(monthKey);
+      if(!hasData){prevActual=null;continue;} // no data yet this month — leave the row blank
+      const s=newReportCountrySummary(monthKey,country);
+      const skus=newReportSkuCount(monthKey,country),piecesSold=newReportPiecesSold(monthKey,country),returns=newReportReturns(monthKey,country);
+      const returnRate=s.orders?returns/s.orders:null,target=targetFor(monthKey,country),achievement=target?s.grossIncl/target:null;
+      const compareLastMonth=prevActual!=null&&prevActual!==0?((s.grossIncl-prevActual)/Math.abs(prevActual)):null;
+      const vals=[Math.round(s.grossIncl*100)/100,Math.round(s.grossProfit*100)/100,s.grossMargin==null?null:Math.round(s.grossMargin*10000)/10000,Math.round(s.cogs*100)/100,Math.round(s.allExpense*100)/100,Math.round(s.marketing*100)/100,Math.round(s.credit*100)/100,Math.round(s.netProfit*100)/100,s.netMargin==null?null:Math.round(s.netMargin*10000)/10000,s.orders,skus,piecesSold,returns,returnRate==null?null:Math.round(returnRate*10000)/10000,compareLastMonth==null?null:Math.round(compareLastMonth*10000)/10000,target==null?null:target,achievement==null?null:Math.round(achievement*10000)/10000];
+      for(let c=2;c<=18;c++){
+        const cell=row.getCell(c);cell.value=vals[c-2];
+        if(pctCols.includes(c))cell.numFmt="0.0%";else if(moneyCols.includes(c))cell.numFmt="#,##0.00";
+      }
+      row.commit();
+      prevActual=s.grossIncl;
+    }
+  });
+  return await wb.xlsx.writeBuffer();
+}
+async function generateNewCeoReportExcel(){
+  const btn=document.getElementById("newCeoReportBtn");
+  if(typeof ExcelJS==="undefined"){toast("Report library failed to load — check your connection.",true);return;}
+  const oldLabel=btn.textContent;btn.disabled=true;btn.textContent="Building…";
+  try{
+    const buf=await buildNewCeoReportWorkbook();
+    const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download="New-CEO-Report-"+todayStr()+".xlsx";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast("New CEO report downloaded.");
+  }catch(err){
+    console.error("New CEO report:",err);
+    toast("Could not build the New CEO report.",true);
+  }finally{
+    btn.disabled=false;btn.textContent=oldLabel;
+  }
+}
 function viewActive(id){const el=document.getElementById("view-"+id);return !!(el&&el.classList.contains("on"));}
 function renderFinanceAll(){refreshPlatformSelects();renderFinanceHistory();renderPayments();renderOrderPnl();renderRefunds();renderExpenses();renderInsights();if(viewActive("export"))renderExport();}
 async function previewFinanceFile(){
@@ -21577,6 +21820,7 @@ document.getElementById("expPayments").addEventListener("click",exportPayments);
 document.getElementById("expExpenses").addEventListener("click",exportExpenses);
 document.getElementById("expInsights").addEventListener("click",exportInsights);
 document.getElementById("ceoReportBtn").addEventListener("click",generateCeoReportPptx);
+document.getElementById("newCeoReportBtn").addEventListener("click",generateNewCeoReportExcel);
 document.getElementById("expExport").addEventListener("click",exportFilteredReport);
 document.getElementById("expExportPivot").addEventListener("click",exportPivotReport);
 document.getElementById("expDailyReport").addEventListener("click",generateDailyReportExcel);
@@ -21708,6 +21952,15 @@ const Cloud=(()=>{
       });
       importBatches=Array.from(map.values());save();renderFinanceAll();
     });
+    watch(db.collection("targets"),s=>{
+      const map=new Map(targets.filter(t=>t&&t.id).map(t=>[String(t.id),t]));
+      s.docChanges().forEach(ch=>{
+        const t=ch.doc.data(),id=String((t&&t.id)||ch.doc.id);
+        if(ch.type==="removed"){map.delete(id);return;}
+        if(t)map.set(id,t);
+      });
+      targets=Array.from(map.values());save();try{renderTarget();}catch(e){}
+    });
     watch(db.collection("warehouses"),s=>{
       const map=new Map(warehouses.filter(w=>w&&w.id).map(w=>[String(w.id),w]));
       s.docChanges().forEach(ch=>{
@@ -21818,6 +22071,8 @@ const Cloud=(()=>{
     setDeadBatch:gw(id=>id&&db.collection("import_batches_deleted").doc(fbid(id)).set({id,deletedAt:new Date().toISOString()})),
     setPlatform:gw(p=>p&&db.collection("platforms").doc(fbid(p.id)).set(p)),
     delPlatform:gd(id=>db.collection("platforms").doc(fbid(id)).delete()),
+    setTarget:gw(t=>t&&db.collection("targets").doc(fbid(t.id)).set(t)),
+    delTarget:gd(id=>db.collection("targets").doc(fbid(id)).delete()),
     setWarehouse:gw(w=>w&&db.collection("warehouses").doc(fbid(w.id)).set(w)),
     delWarehouse:gd(id=>db.collection("warehouses").doc(fbid(id)).delete()),
     setWarehouseDeleted:gw(id=>id&&db.collection("warehouse_deletions").doc(fbid(id)).set({id,deletedAt:new Date().toISOString()})),
@@ -21858,6 +22113,7 @@ try{renderWarehouses();}catch(e){console.warn("renderWarehouses",e);}
 try{renderAdd();}catch(e){console.warn("renderAdd",e);}
 try{document.getElementById("exDate").value=todayStr();renderFinanceAll();}catch(e){console.warn("renderFinance",e);}
 try{renderRecords();}catch(e){console.warn("renderRecords",e);}
+try{renderTarget();}catch(e){console.warn("renderTarget",e);}
 try{renderDash();}catch(e){console.warn("renderDash",e);}
 try{document.querySelectorAll("#exportMetricSeg button").forEach(b=>b.classList.toggle("on",b.dataset.m===exportMetricMode));renderExport();}catch(e){console.warn("renderExport",e);}
 try{
