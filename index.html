@@ -17096,7 +17096,7 @@ function dedupeLocal(){
 }
 function migrate(){dedupeLocal();save();}
 
-const save=()=>{Store.set("nod_products",products);Store.set("nod_customers",customers);Store.set("nod_orders",orders);Store.set("nod_finance",financeEntries);Store.set("nod_import_batches",importBatches);Store.set("nod_deleted_batches",deletedBatchIds);Store.set("nod_payments",paymentEntries);Store.set("nod_platforms",platforms);Store.set("nod_warehouses",warehouses);Store.set("nod_deleted_warehouses",deletedWarehouseIds);Store.set("nod_inventory",inventoryRows);Store.set("nod_stock_moves",stockMovements);Store.set("nod_warehouse_layouts",warehouseLayouts);Store.set("nod_warehouse_cartons",warehouseCartons);Store.set("nod_warehouse_zones",warehouseZones);Store.set("nod_active_layout_rack",activeLayoutRackId);Store.set("nod_warehouse_visual_mode",warehouseVisualMode);Store.set("nod_warehouse_tab",warehouseTab);Store.set("nod_warehouse_3d_state",wh3dState);Store.set("nod_inventory_page_tab",inventoryPageTab);Store.set("nod_targets",targets);};
+const save=()=>{_dataVersion++;Store.set("nod_products",products);Store.set("nod_customers",customers);Store.set("nod_orders",orders);Store.set("nod_finance",financeEntries);Store.set("nod_import_batches",importBatches);Store.set("nod_deleted_batches",deletedBatchIds);Store.set("nod_payments",paymentEntries);Store.set("nod_platforms",platforms);Store.set("nod_warehouses",warehouses);Store.set("nod_deleted_warehouses",deletedWarehouseIds);Store.set("nod_inventory",inventoryRows);Store.set("nod_stock_moves",stockMovements);Store.set("nod_warehouse_layouts",warehouseLayouts);Store.set("nod_warehouse_cartons",warehouseCartons);Store.set("nod_warehouse_zones",warehouseZones);Store.set("nod_active_layout_rack",activeLayoutRackId);Store.set("nod_warehouse_visual_mode",warehouseVisualMode);Store.set("nod_warehouse_tab",warehouseTab);Store.set("nod_warehouse_3d_state",wh3dState);Store.set("nod_inventory_page_tab",inventoryPageTab);Store.set("nod_targets",targets);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fmt=n=>(isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmt4=n=>(isFinite(n)?n:0).toLocaleString(undefined,{minimumFractionDigits:4,maximumFractionDigits:4});
@@ -17367,13 +17367,59 @@ function orderWarehouseId(o){
   return defaultWarehouseId((cust&&cust.country)||(o&&o.country)||"UAE",platformWarehouseType(platform));
 }
 function inventoryKey(barcode,warehouseId){return (String(barcode||"").trim()+"|"+String(warehouseId||"").trim()).toLowerCase().replace(/[^a-z0-9_-]+/gi,"_");}
+/* ---------- shared inventory/sold-qty index (perf) ----------
+   Inventory level / Product setup / Warehouses all used to call soldQtyForBarcodeWarehouse(),
+   inventoryRow() etc. from inside a per-row loop — each call rescanned the ENTIRE orders (or
+   inventoryRows) array, so a page with P products × W warehouses cost O(P*W*orders) every
+   render, which is what made these pages slow/unresponsive as order history grew. These two
+   functions build the same lookups ONCE (O(orders) / O(inventoryRows)) and cache the result;
+   the cache is invalidated automatically whenever save() runs (i.e. whenever data changes). */
+let _dataVersion=0;
+let _soldIndexCache=null,_soldIndexVersion=-1;
+let _invIndexCache=null,_invIndexVersion=-1;
+function getSoldIndex(){
+  if(_soldIndexCache&&_soldIndexVersion===_dataVersion)return _soldIndexCache;
+  const qty=new Map(),wids=new Map();
+  (orders||[]).forEach(o=>{
+    const wid=orderWarehouseId(o||{})||"";
+    (o.lines||[]).forEach(l=>{
+      const bc=String(l.barcode||"").trim().toLowerCase();if(!bc)return;
+      const q=Number(l.qty)||0;
+      qty.set(bc+"|",(qty.get(bc+"|")||0)+q);
+      if(wid){const k=bc+"|"+wid;qty.set(k,(qty.get(k)||0)+q);}
+      if(q>0&&wid){if(!wids.has(bc))wids.set(bc,new Set());wids.get(bc).add(wid);}
+    });
+  });
+  _soldIndexCache={qty,wids};_soldIndexVersion=_dataVersion;
+  return _soldIndexCache;
+}
+function getInventoryIndex(){
+  if(_invIndexCache&&_invIndexVersion===_dataVersion)return _invIndexCache;
+  const byKey=new Map(),barcodes=new Set(),byBarcode=new Map();
+  inventoryRows.forEach(r=>{
+    const bc=String(r.barcode||"").trim().toLowerCase(),wid=r.warehouseId;
+    byKey.set(bc+"|"+wid,r);barcodes.add(bc);
+    if(!byBarcode.has(bc))byBarcode.set(bc,[]);
+    byBarcode.get(bc).push(r);
+  });
+  _invIndexCache={byKey,barcodes,byBarcode};_invIndexVersion=_dataVersion;
+  return _invIndexCache;
+}
 function inventoryRow(barcode,warehouseId,create){
   const bc=String(barcode||"").trim(),wid=String(warehouseId||"").trim();if(!bc||!wid)return null;
-  let r=inventoryRows.find(x=>String(x.barcode).toLowerCase()===bc.toLowerCase()&&x.warehouseId===wid);
-  if(!r&&create){r={id:inventoryKey(bc,wid),barcode:bc,warehouseId:wid,qty:0,location:""};inventoryRows.push(r);}
+  const idx=getInventoryIndex(),key=bc.toLowerCase()+"|"+wid;
+  let r=idx.byKey.get(key);
+  if(!r&&create){
+    r={id:inventoryKey(bc,wid),barcode:bc,warehouseId:wid,qty:0,location:""};
+    inventoryRows.push(r);
+    const bcLower=bc.toLowerCase();
+    idx.byKey.set(key,r);idx.barcodes.add(bcLower); // keep cache consistent within this pass
+    if(!idx.byBarcode.has(bcLower))idx.byBarcode.set(bcLower,[]);
+    idx.byBarcode.get(bcLower).push(r);
+  }
   return r;
 }
-function hasInventoryRows(barcode){const bc=String(barcode||"").trim().toLowerCase();return inventoryRows.some(r=>String(r.barcode||"").toLowerCase()===bc);}
+function hasInventoryRows(barcode){const bc=String(barcode||"").trim().toLowerCase();return getInventoryIndex().barcodes.has(bc);}
 function warehouseQty(barcode,warehouseId){
   const r=inventoryRow(barcode,warehouseId,false);if(r)return Number(r.qty)||0;
   const p=productByBarcode(barcode),w=warehouseById(warehouseId);
@@ -17564,22 +17610,14 @@ function stockLevelBar(available,sold,manualMin){
 function looseText(v){return String(v||"").toLowerCase().replace(/[^a-z0-9]+/g,"");}
 function soldQtyForBarcodeWarehouse(barcode,warehouseId){
   const bc=String(barcode||"").trim().toLowerCase();if(!bc)return 0;
-  return (orders||[]).reduce((sum,o)=>{
-    const wid=orderWarehouseId(o||{});if(warehouseId&&wid!==warehouseId)return sum;
-    (o.lines||[]).forEach(l=>{if(String(l.barcode||"").trim().toLowerCase()===bc)sum+=Number(l.qty)||0;});
-    return sum;
-  },0);
+  const idx=getSoldIndex();
+  return idx.qty.get(warehouseId?bc+"|"+warehouseId:bc+"|")||0;
 }
 function soldQtyForProduct(barcode){return soldQtyForBarcodeWarehouse(barcode,"");}
 function soldWarehouseIdsForBarcode(barcode){
-  const bc=String(barcode||"").trim().toLowerCase(),ids=[];if(!bc)return ids;
-  (orders||[]).forEach(o=>{
-    const sold=(o.lines||[]).some(l=>String(l.barcode||"").trim().toLowerCase()===bc&&(Number(l.qty)||0)>0);
-    if(!sold)return;
-    const wid=orderWarehouseId(o||{});
-    if(wid&&!ids.includes(wid))ids.push(wid);
-  });
-  return ids;
+  const bc=String(barcode||"").trim().toLowerCase();if(!bc)return [];
+  const set=getSoldIndex().wids.get(bc);
+  return set?[...set]:[];
 }
 function inventoryProductScope(){
   const map={};
@@ -17596,8 +17634,8 @@ function inventoryProductScope(){
 }
 function availableQtyForProduct(barcode){
   const bc=String(barcode||"").trim().toLowerCase();if(!bc)return 0;
-  const p=productByBarcode(barcode),rows=inventoryRows.filter(r=>String(r.barcode||"").trim().toLowerCase()===bc);
-  if(rows.length)return rows.reduce((s,r)=>s+(Number(r.qty)||0),0);
+  const p=productByBarcode(barcode),rows=getInventoryIndex().byBarcode.get(bc);
+  if(rows&&rows.length)return rows.reduce((s,r)=>s+(Number(r.qty)||0),0);
   return p&&stockTracked(p)?Number(p.stock)||0:0;
 }
 function validateOrderProductStock(list,restoreOrder){
@@ -18070,12 +18108,14 @@ document.getElementById("prodCreateWarehouse").addEventListener("click",()=>{
   if(nav)nav.click();
   setTimeout(()=>{const el=document.getElementById("wName");if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.focus();}},80);
 });
+function debounce(fn,wait){let t;return function(...args){clearTimeout(t);t=setTimeout(()=>fn.apply(this,args),wait);};}
+const renderSetupDebounced=debounce(renderSetup,220);
 ["invCountryFilter","invWarehouseFilter","invStatusFilter","invCategoryFilter","invSearch"].forEach(id=>{
-  const el=document.getElementById(id);if(el)el.addEventListener(id==="invSearch"?"input":"change",renderSetup);
+  const el=document.getElementById(id);if(el)el.addEventListener(id==="invSearch"?"input":"change",id==="invSearch"?renderSetupDebounced:renderSetup);
 });
 (function(){const t=document.getElementById("inventoryLevelTable");if(t)t.addEventListener("click",e=>{const th=e.target.closest("[data-inv-sort]");if(!th)return;const k=th.dataset.invSort;if(invSortKey===k){invSortDir=invSortDir==="asc"?"desc":"asc";}else{invSortKey=k;invSortDir="asc";}renderInventoryLevel();});})();
 ["prodCountryFilter","prodPlatformFilter","prodWarehouseFilter","prodSetupStatusFilter","prodSearch"].forEach(id=>{
-  const el=document.getElementById(id);if(el)el.addEventListener(id==="prodSearch"?"input":"change",renderSetup);
+  const el=document.getElementById(id);if(el)el.addEventListener(id==="prodSearch"?"input":"change",id==="prodSearch"?renderSetupDebounced:renderSetup);
 });
 ["pMarket","pBar"].forEach(id=>{
   const el=document.getElementById(id);if(el)el.addEventListener(id==="pBar"?"input":"change",()=>renderProductWarehouseStock());
@@ -18190,9 +18230,10 @@ function hasInventoryRowsExact(barcode,wid){
 function warehouseInventoryRows(){
   normalizeWarehouses();
   const rows=[];
+  const idx=getInventoryIndex();
   products.filter(stockTracked).forEach(p=>{
-    const bc=String(p.barcode||"").toLowerCase(),existing=inventoryRows.filter(r=>String(r.barcode||"").toLowerCase()===bc);
-    if(existing.length)existing.forEach(r=>{const wh=warehouses.find(w=>w.id===r.warehouseId);if(wh)rows.push({product:p,warehouse:wh,qty:Number(r.qty)||0,location:r.location||"",virtual:false});});
+    const bc=String(p.barcode||"").toLowerCase(),existing=idx.byBarcode.get(bc);
+    if(existing&&existing.length)existing.forEach(r=>{const wh=warehouses.find(w=>w.id===r.warehouseId);if(wh)rows.push({product:p,warehouse:wh,qty:Number(r.qty)||0,location:r.location||"",virtual:false});});
     else{const wh=warehouses.find(w=>w.id===defaultWarehouseId(productMarket(p),"primary"));if(wh)rows.push({product:p,warehouse:wh,qty:Number(p.stock)||0,location:"",virtual:true});}
   });
   return rows;
@@ -18864,8 +18905,9 @@ function saveLayoutRack(){
   document.getElementById("layoutRack").value="";
   renderWarehouses();toast("Storage location saved.");
 }
+const renderWarehousesDebounced=debounce(renderWarehouses,220);
 ["whCountryFilter","whWarehouseFilter","whSearch","layoutWarehouse","stockWarehouse","transferTo","cartonWarehouse"].forEach(id=>{
-  const el=document.getElementById(id);if(el)el.addEventListener(id==="whSearch"?"input":"change",renderWarehouses);
+  const el=document.getElementById(id);if(el)el.addEventListener(id==="whSearch"?"input":"change",id==="whSearch"?renderWarehousesDebounced:renderWarehouses);
 });
 (function(){
   const inp=document.getElementById("whLocateInput"),btn=document.getElementById("whLocateBtn"),clr=document.getElementById("whLocateClear");
