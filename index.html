@@ -121,6 +121,9 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .stock-status.warning,.stock-status.low{background:#FFF3D6;color:#A35D00}
 .stock-status.urgent{background:#FCE8D5;color:#B45309}
 .stock-status.out{background:#FDE9E5;color:var(--neg)}
+.stock-status.closed{background:#EDEFF2;color:#5B6570}
+.p-wh-row.is-closed{opacity:.55}
+.p-wh-row.is-closed .wname::after{content:" · CLOSED";font-family:var(--mono);font-size:10px;color:#5B6570}
 .p-wh-stock{border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;background:var(--surface)}
 .p-wh-row{display:grid;grid-template-columns:auto 1fr 96px 120px auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border)}
 .p-wh-row:last-child{border-bottom:0}
@@ -16689,7 +16692,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
         <div class="filterbar" style="margin-top:16px">
           <select class="inp" id="invCountryFilter" style="width:auto;min-width:130px"><option value="all">All countries</option><option value="UAE">UAE</option><option value="KSA">KSA</option></select>
           <select class="inp" id="invWarehouseFilter" style="width:auto;min-width:210px"><option value="all">All warehouses</option></select>
-          <select class="inp" id="invStatusFilter" style="width:auto;min-width:190px"><option value="all">All stock</option><option value="sellable">Sellable only</option><option value="attention">Warning / urgent / out</option><option value="healthy">Healthy 50%+</option><option value="warning">Warning 30-49%</option><option value="urgent">Urgent 1-29%</option><option value="out">Out of stock</option></select>
+          <select class="inp" id="invStatusFilter" style="width:auto;min-width:190px"><option value="all">All stock</option><option value="sellable">Sellable only</option><option value="attention">Warning / urgent / out</option><option value="healthy">Healthy 50%+</option><option value="warning">Warning 30-49%</option><option value="urgent">Urgent 1-29%</option><option value="out">Out of stock</option><option value="closed">Closed</option><option value="active">Active only (hide closed)</option></select>
           <select class="inp" id="invCategoryFilter" style="width:auto;min-width:150px"><option value="all">All categories</option></select>
           <input class="inp" id="invSearch" placeholder="Search barcode, product or warehouse" style="max-width:310px">
         </div>
@@ -17031,11 +17034,12 @@ function dedupeLocal(){
     const bc=String(p.barcode).trim();const kl=bc.toLowerCase();if(!kl)return;
     const score=((p.title&&String(p.title).trim())?2:0)+((Number(p.cp)>0)?1:0),stock=(p.stock===null||p.stock===undefined||p.stock==="")?null:Math.max(0,Number(p.stock)||0);
     const minStock=isFinite(Number(p.minStock))?Math.max(0,Number(p.minStock)):5;
-    const candidate={id:bc,barcode:bc,title:p.title||"",cp:Number(p.cp)||0,market:normalizeMarket(p.market),stock,minStock,_s:score};
-    if(!pmap[kl]||score>pmap[kl]._s){if(pmap[kl]&&candidate.stock===null)candidate.stock=pmap[kl].stock;pmap[kl]=candidate;}
-    else if(pmap[kl].stock===null&&stock!==null)pmap[kl].stock=stock;
+    const closedWarehouses=Array.isArray(p.closedWarehouses)?p.closedWarehouses.map(String).filter(Boolean):[];
+    const candidate={id:bc,barcode:bc,title:p.title||"",cp:Number(p.cp)||0,market:normalizeMarket(p.market),stock,minStock,category:String(p.category||"").trim(),closedWarehouses,_s:score};
+    if(!pmap[kl]||score>pmap[kl]._s){if(pmap[kl]){if(candidate.stock===null)candidate.stock=pmap[kl].stock;if(!candidate.category)candidate.category=pmap[kl].category;if(!candidate.closedWarehouses.length)candidate.closedWarehouses=pmap[kl].closedWarehouses;}pmap[kl]=candidate;}
+    else{if(pmap[kl].stock===null&&stock!==null)pmap[kl].stock=stock;if(!pmap[kl].category&&candidate.category)pmap[kl].category=candidate.category;if(!pmap[kl].closedWarehouses.length&&closedWarehouses.length)pmap[kl].closedWarehouses=closedWarehouses;}
   });
-  products=Object.values(pmap).map(p=>({id:p.id,barcode:p.barcode,title:p.title,cp:p.cp,market:p.market,stock:p.stock,minStock:p.minStock}));
+  products=Object.values(pmap).map(p=>({id:p.id,barcode:p.barcode,title:p.title,cp:p.cp,market:p.market,stock:p.stock,minStock:p.minStock,category:p.category||"",closedWarehouses:p.closedWarehouses||[]}));
   // CUSTOMERS unique by name (keep existing id or use name)
   const cmap={};
   (customers||[]).forEach(c=>{
@@ -17600,6 +17604,16 @@ function inventoryStatus(available,sold,manualMin){
   if(pct<50)return {key:"warning",label:"Warning",cls:"warning",rank:2,pct};
   return {key:"healthy",label:"Healthy",cls:"healthy",rank:3,pct};
 }
+const CLOSED_STATUS={key:"closed",label:"Closed",cls:"closed",rank:5};
+function productClosedWarehouses(p){return Array.isArray(p&&p.closedWarehouses)?p.closedWarehouses.map(String).filter(Boolean):[];}
+function isWarehouseClosed(p,warehouseId){return productClosedWarehouses(p).includes(String(warehouseId||""));}
+function setWarehouseClosed(p,warehouseId,flag){
+  if(!p)return;
+  const id=String(warehouseId||""),list=productClosedWarehouses(p).filter(x=>x!==id);
+  if(flag)list.push(id);
+  p.closedWarehouses=list;
+  save();Cloud.setP(p);
+}
 function stockLevelRatio(available,sold,manualMin){return Math.min(1,sellablePct(available,sold,manualMin)/100);}
 function stockLevelBar(available,sold,manualMin){
   available=Math.max(0,Number(available)||0);sold=Math.max(0,Number(sold)||0);
@@ -17733,8 +17747,8 @@ function inventoryLevelRows(){
   const rows=[];
   products.forEach(p=>{
     inventoryWarehousesForProduct(p).forEach(w=>{
-      const inv=inventoryRow(p.barcode,w.id,false),available=warehouseQty(p.barcode,w.id),sold=soldQtyForBarcodeWarehouse(p.barcode,w.id),manualMin=productMinStock(p),min=stockTargetQty(sold,manualMin),status=inventoryStatus(available,sold,manualMin);
-      rows.push({product:p,warehouse:w,sold,qty:available,available,totalQty:min,min,manualMin,sellable:Math.max(0,Number(available)||0),sellablePct:status.pct,location:inv&&inv.location||"",virtual:!inv,status,level:stockLevelRatio(available,sold,manualMin),value:(Number(available)||0)*(Number(p.cp)||0)});
+      const inv=inventoryRow(p.barcode,w.id,false),available=warehouseQty(p.barcode,w.id),sold=soldQtyForBarcodeWarehouse(p.barcode,w.id),manualMin=productMinStock(p),min=stockTargetQty(sold,manualMin),closed=isWarehouseClosed(p,w.id),status=closed?Object.assign({},CLOSED_STATUS,{pct:sellablePct(available,sold,manualMin)}):inventoryStatus(available,sold,manualMin);
+      rows.push({product:p,warehouse:w,closed,sold,qty:available,available,totalQty:min,min,manualMin,sellable:Math.max(0,Number(available)||0),sellablePct:status.pct,location:inv&&inv.location||"",virtual:!inv,status,level:stockLevelRatio(available,sold,manualMin),value:(Number(available)||0)*(Number(p.cp)||0)});
     });
   });
   return rows;
@@ -17787,7 +17801,8 @@ function renderInventoryLevel(){
     if(category!=="all"&&productCategory(r.product)!==category)return false;
     if(status==="sellable"&&!(r.available>0))return false;
     if(status==="attention"&&!["warning","urgent","out"].includes(r.status.key))return false;
-    if(["healthy","warning","urgent","out"].includes(status)&&r.status.key!==status)return false;
+    if(status==="active"&&r.closed)return false;
+    if(["healthy","warning","urgent","out","closed"].includes(status)&&r.status.key!==status)return false;
     if(search){
       const hay=`${r.product.barcode} ${r.product.title} ${productCategory(r.product)} ${r.warehouse.name} ${r.warehouse.country} ${r.warehouse.type} ${r.product.salesOnly?"sales only":""}`.toLowerCase();
       if(!hay.includes(search)&&!(looseSearch&&looseText(hay).includes(looseSearch)))return false;
@@ -17807,18 +17822,21 @@ function renderInventoryLevel(){
   const skuCount=new Set(rows.map(r=>String(r.product.barcode).toLowerCase())).size;
   const totalProducts=new Set(allRows.map(r=>String(r.product.barcode).toLowerCase())).size;
   const salesOnlyCount=new Set(rows.filter(r=>r.product.salesOnly).map(r=>String(r.product.barcode).toLowerCase())).size;
-  const totalSold=rows.reduce((s,r)=>s+(Number(r.sold)||0),0);
-  const totalAvailable=rows.reduce((s,r)=>s+(Number(r.available)||0),0);
-  const totalTarget=rows.reduce((s,r)=>s+(Number(r.min)||0),0);
+  const activeRows=rows.filter(r=>!r.closed);
+  const closedRows=rows.filter(r=>r.closed);
+  const closedSold=closedRows.reduce((s,r)=>s+(Number(r.sold)||0),0);
+  const totalSold=activeRows.reduce((s,r)=>s+(Number(r.sold)||0),0);
+  const totalAvailable=activeRows.reduce((s,r)=>s+(Number(r.available)||0),0);
+  const totalTarget=activeRows.reduce((s,r)=>s+(Number(r.min)||0),0);
   const overallPct=sellablePct(totalAvailable,totalSold,totalTarget);
   const healthyRows=rows.filter(r=>r.status.key==="healthy").length;
   const warningRows=rows.filter(r=>r.status.key==="warning").length;
   const urgentRows=rows.filter(r=>r.status.key==="urgent").length;
   const outRows=rows.filter(r=>r.status.key==="out").length;
   const whCount=new Set(rows.map(r=>r.warehouse.id)).size;
-  const value=rows.reduce((s,r)=>s+(Number(r.value)||0),0);
+  const value=activeRows.reduce((s,r)=>s+(Number(r.value)||0),0);
   const kpis=document.getElementById("invKpis");
-  if(kpis)kpis.innerHTML=finCard("Products",String(skuCount),products.length+" setup · "+salesOnlyCount+" sales-only")+finCard("Sold qty",fmt(totalSold),"saved order qty")+finCard("Available qty",fmt(totalAvailable),"current inventory")+finCard("Target qty",fmt(totalTarget),"50% of sold qty")+finCard("Stock %",overallPct+"%","Available ÷ Sold",overallPct>=50?"pos":overallPct>0?"neg":"neg")+finCard("Healthy",String(healthyRows),"50% and above","pos")+finCard("Warning",String(warningRows),"30% to 49%",warningRows?"neg":"pos")+finCard("Urgent",String(urgentRows),"1% to 29%",urgentRows?"neg":"pos")+finCard("Out of stock",String(outRows),"0% stock",outRows?"neg":"pos")+finCard("Stock value",fmt(value),"available qty × cost price");
+  if(kpis)kpis.innerHTML=finCard("Products",String(skuCount),products.length+" setup · "+salesOnlyCount+" sales-only")+finCard("Sold qty",fmt(totalSold),"saved order qty · active warehouses")+finCard("Available qty",fmt(totalAvailable),"current inventory")+finCard("Target qty",fmt(totalTarget),"50% of sold qty")+finCard("Stock %",overallPct+"%","Available ÷ Sold",overallPct>=50?"pos":overallPct>0?"neg":"neg")+finCard("Healthy",String(healthyRows),"50% and above","pos")+finCard("Warning",String(warningRows),"30% to 49%",warningRows?"neg":"pos")+finCard("Urgent",String(urgentRows),"1% to 29%",urgentRows?"neg":"pos")+finCard("Out of stock",String(outRows),"0% stock",outRows?"neg":"pos")+finCard("Stock value",fmt(value),"available qty × cost price")+finCard("Closed",String(closedRows.length),"parked · "+fmt(closedSold)+" sold kept");
   const rowCount=document.getElementById("invRowCount");if(rowCount)rowCount.textContent=rows.length+" rows · "+skuCount+"/"+totalProducts+" products";
   const arrow=k=>invSortKey===k?(invSortDir==="asc"?" ▲":" ▼"):"";
   const th=(k,label,cls)=>'<th'+(cls?' class="'+cls+'"':'')+' data-inv-sort="'+k+'" style="cursor:pointer;user-select:none">'+label+arrow(k)+'</th>';
@@ -17907,11 +17925,11 @@ function renderProductWarehouseStock(product){
   const hasRows=current&&hasInventoryRows(current.barcode),primary=current?defaultWarehouseId(productMarket(current),"primary"):"";
   box.innerHTML=addBar+whs.map(w=>{
     const draft=existingDraft[w.id],inv=current?inventoryRow(current.barcode,w.id,false):null,virtual=current&&!inv&&w.id===primary&&stockTracked(current)&&!hasRows;
-    const oldQty=inv?fmt(inv.qty):virtual?fmt(current.stock):"",oldLoc=inv?inv.location:"",oldAssigned=!!(inv||virtual);
+    const oldQty=inv?fmt(inv.qty):virtual?fmt(current.stock):"",oldLoc=inv?inv.location:"",oldAssigned=!!(inv||virtual),closedWh=isWarehouseClosed(current,w.id);
     const qty=draft?draft.qty:oldQty;
     const loc=draft?draft.location:oldLoc;
     const checked=draft?draft.checked:oldAssigned;
-    return '<div class="p-wh-row" data-p-wh="'+esc(w.id)+'" data-assigned="'+(oldAssigned?'1':'0')+'" data-old-qty="'+esc(oldQty)+'" data-old-loc="'+esc(oldLoc)+'"><input class="p-wh-use" type="checkbox" '+(checked?'checked':'')+'><div><div class="wname">'+esc(w.name)+'</div><div class="wsub">'+esc(w.country)+' · '+esc(String(w.type||"custom").toUpperCase())+'</div></div><input class="inp p-wh-qty" type="number" min="0" step="1" placeholder="Qty" value="'+esc(qty)+'"><input class="inp p-wh-loc" placeholder="Location" value="'+esc(loc)+'"><span style="display:flex;gap:4px"><button type="button" class="btn btn-ghost btn-sm p-wh-edit" data-wh-edit="'+esc(w.id)+'" title="Rename warehouse">&#9998;</button><button type="button" class="btn btn-dang btn-sm p-wh-del" data-wh-del2="'+esc(w.id)+'" title="Delete warehouse">&times;</button></span></div>';
+    return '<div class="p-wh-row'+(closedWh?' is-closed':'')+'" data-p-wh="'+esc(w.id)+'" data-assigned="'+(oldAssigned?'1':'0')+'" data-old-qty="'+esc(oldQty)+'" data-old-loc="'+esc(oldLoc)+'"><input class="p-wh-use" type="checkbox" '+(checked?'checked':'')+'><div><div class="wname">'+esc(w.name)+'</div><div class="wsub">'+esc(w.country)+' · '+esc(String(w.type||"custom").toUpperCase())+'</div></div><input class="inp p-wh-qty" type="number" min="0" step="1" placeholder="Qty" value="'+esc(qty)+'"><input class="inp p-wh-loc" placeholder="Location" value="'+esc(loc)+'"><span style="display:flex;gap:4px"><button type="button" class="btn '+(closedWh?'btn-pri':'btn-ghost')+' btn-sm p-wh-close" data-wh-close="'+esc(w.id)+'" title="'+(closedWh?'Reopen this warehouse for this product':'Close this warehouse for this product (keeps sold history)')+'">'+(closedWh?'&#128274;':'&#9673;')+'</button><button type="button" class="btn btn-ghost btn-sm p-wh-edit" data-wh-edit="'+esc(w.id)+'" title="Rename warehouse">&#9998;</button><button type="button" class="btn btn-dang btn-sm p-wh-del" data-wh-del2="'+esc(w.id)+'" title="Delete warehouse">&times;</button></span></div>';
   }).join("");
 }
 function readProductWarehouseSplits(product,market){
@@ -18125,7 +18143,16 @@ document.getElementById("pWarehouseStock").addEventListener("input",e=>{
   if(e.target.classList.contains("p-wh-qty")||e.target.classList.contains("p-wh-loc")){const cb=row.querySelector(".p-wh-use");if(cb&&(String(e.target.value||"").trim()!==""))cb.checked=true;}
 });
 document.getElementById("pWarehouseStock").addEventListener("click",e=>{
-  const addBtn=e.target.closest("#pWhAddBtn"),edBtn=e.target.closest("[data-wh-edit]"),delBtn=e.target.closest("[data-wh-del2]");
+  const addBtn=e.target.closest("#pWhAddBtn"),edBtn=e.target.closest("[data-wh-edit]"),delBtn=e.target.closest("[data-wh-del2]"),closeBtn=e.target.closest("[data-wh-close]");
+  if(closeBtn){
+    const bar=document.getElementById("pBar"),cur=productByBarcode(bar&&bar.value);
+    if(!cur){toast("Load or save the product first, then close a warehouse.",true);return;}
+    const wid=closeBtn.dataset.whClose,nowClosed=!isWarehouseClosed(cur,wid);
+    setWarehouseClosed(cur,wid,nowClosed);
+    renderProductWarehouseStock(cur);renderSetup();renderInventoryLevel();
+    toast(nowClosed?(warehouseName(wid)+" closed for this product. Sold history kept."):(warehouseName(wid)+" reopened."));
+    return;
+  }
   if(addBtn){
     const nameEl=document.getElementById("pWhNewName"),typeEl=document.getElementById("pWhNewType");
     const name=String(nameEl&&nameEl.value||"").trim(),type=(typeEl&&typeEl.value)||"custom";
@@ -19844,7 +19871,8 @@ function exportInventoryLevel(){
     if(category!=="all"&&productCategory(r.product)!==category)return false;
     if(status==="sellable"&&!(r.available>0))return false;
     if(status==="attention"&&!["warning","urgent","out"].includes(r.status.key))return false;
-    if(["healthy","warning","urgent","out"].includes(status)&&r.status.key!==status)return false;
+    if(status==="active"&&r.closed)return false;
+    if(["healthy","warning","urgent","out","closed"].includes(status)&&r.status.key!==status)return false;
     if(search){
       const hay=`${r.product.barcode} ${r.product.title} ${productCategory(r.product)} ${r.warehouse.name} ${r.warehouse.country} ${r.warehouse.type} ${r.product.salesOnly?"sales only":""}`.toLowerCase();
       if(!hay.includes(search)&&!(looseSearch&&looseText(hay).includes(looseSearch)))return false;
@@ -19890,7 +19918,7 @@ function orderRows(list){ // flat line rows for Orders sheet
       "Product":l.product,"Qty":l.qty,"CP per pc":+Number(l.cpPerPc).toFixed(2),
       "Sale Price":+Number(l.salePrice).toFixed(2),"SP per pc":+trunc2(spPerPc(l.salePrice,l.qty,o.country)).toFixed(2),
       "Line Profit":+lineProfit(l,o.country).toFixed(2),"Customer":o.customerName||"","Country":o.country||"",
-      "VAT 5%":isUAE(o.country)?"Yes":"No","Date":o.date,"Status":pay.label,"Ref ID":pay.ref||"","Payment source":pay.linked?"Payments":"Manual"
+      "VAT 5%":isUAE(o.country)?"Yes":"No","Warehouse":(function(){const wid=orderWarehouseId(o);return wid&&warehouseExists(wid)?warehouseName(wid):"Unassigned";})(),"Date":o.date,"Status":pay.label,"Ref ID":pay.ref||"","Payment source":pay.linked?"Payments":"Manual"
     });
   }));
   return rows;
