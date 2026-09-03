@@ -19892,6 +19892,7 @@ function exportInventoryLevel(){
     "Stock %":Number(r.sellablePct)||0,
     "Status":r.status.label,
     "Location":r.location||"Unassigned",
+    "Cost price":+Number(r.product.cp||0).toFixed(2),
     "Stock value":+Number(r.value||0).toFixed(2)
   }));
   exportSheets("inventory-level-"+todayStr(),[{name:"Inventory Level",rows:exportRows}]);
