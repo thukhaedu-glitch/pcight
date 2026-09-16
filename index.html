@@ -373,6 +373,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
     <button class="navbtn" data-view="expenses"><span class="ic">−</span> Expenses</button>
     <button class="navbtn" data-view="insights"><span class="ic">◆</span> Monthly insights</button>
     <button class="navbtn" data-view="target"><span class="ic">◎</span> Targets</button>
+    <button class="navbtn" data-view="calc"><span class="ic">⌗</span> Calculator</button>
     <button class="navbtn" data-view="export"><span class="ic">⇪</span> Export</button>
     <button class="navbtn" data-view="barcodes"><span class="ic">▥</span> Inventory level</button>
     <button class="navbtn" data-view="productsetup"><span class="ic">▤</span> Product setup</button>
@@ -16616,7 +16617,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
     <!-- ============ MONTHLY INSIGHTS ============ -->
     <section class="view" id="view-insights">
       <div class="head"><div><div class="eyebrow">Finance</div><h1>Monthly insights</h1><p>Contribution and final net profit by platform and month.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" id="expInsights">⬇ Excel</button><button class="btn btn-pri" id="ceoReportBtn">◆ CEO Report</button><button class="btn btn-ghost" id="newCeoReportBtn">⬇ New CEO Report (Excel)</button></div></div>
-      <div class="filterbar" style="margin:14px 0 18px"><select class="inp" id="insPlatform" style="width:auto;min-width:150px"><option value="all" selected="">All platforms</option><option value="noon">Noon</option><option value="amazon">Amazon</option><option value="website">Website</option><option value="shared">Shared</option></select><select class="inp" id="insMonth" style="width:auto;min-width:150px"><option value="all">All months</option><option value="2026-07">Jul 26</option><option value="2026-06">Jun 26</option><option value="2026-05">May 26</option><option value="2026-04">Apr 26</option><option value="2026-03">Mar 26</option><option value="2026-02">Feb 26</option><option value="2026-01">Jan 26</option><option value="2025-12">Dec 25</option><option value="2025-11">Nov 25</option><option value="2025-10">Oct 25</option></select></div>
+      <div class="filterbar" style="margin:14px 0 18px"><details id="ceoMonthsBox" style="position:relative"><summary class="btn btn-ghost btn-sm" style="list-style:none;cursor:pointer">⚑ Report months</summary><div id="ceoMonthsList" style="position:absolute;z-index:40;top:100%;left:0;margin-top:6px;min-width:220px;max-height:320px;overflow:auto;background:#fff;border:1px solid #e5e0d8;border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div></details><select class="inp" id="insPlatform" style="width:auto;min-width:150px"><option value="all" selected="">All platforms</option><option value="noon">Noon</option><option value="amazon">Amazon</option><option value="website">Website</option><option value="shared">Shared</option></select><select class="inp" id="insMonth" style="width:auto;min-width:150px"><option value="all">All months</option><option value="2026-07">Jul 26</option><option value="2026-06">Jun 26</option><option value="2026-05">May 26</option><option value="2026-04">Apr 26</option><option value="2026-03">Mar 26</option><option value="2026-02">Feb 26</option><option value="2026-01">Jan 26</option><option value="2025-12">Dec 25</option><option value="2025-11">Nov 25</option><option value="2025-10">Oct 25</option></select></div>
       <div class="fin-grid" id="insightKpis" style="margin-top:18px"><div class="fin-card"><div class="lab">Periods</div><div class="val ">19</div><div class="sub">filtered month / platform rows</div></div><div class="fin-card"><div class="lab">Net sales</div><div class="val ">48,470.38</div><div class="sub">after refunds and VAT</div></div><div class="fin-card"><div class="lab">Marketing / advertising</div><div class="val ">5,054.78</div><div class="sub">net charges after credits</div></div><div class="fin-card"><div class="lab">Final net profit</div><div class="val ">10,607.68</div><div class="sub">contribution after marketing / advertising</div></div></div>
       <div class="panel"><div class="panel-h"><h3>Monthly performance</h3><span class="tag">signed ledger</span></div><div class="panel-b" style="padding:0"><div class="tbl-wrap"><table id="insightTable" class="compact-table"><thead><tr><th>Month</th><th>Platform</th><th class="num">Gross sales</th><th class="num">Refunds</th><th class="num">VAT</th><th class="num">Net sales</th><th class="num">Product cost</th><th class="num">Commission</th><th class="num">Delivery</th><th class="num">Ads</th><th class="num">Warehouse</th><th class="num">Contribution</th><th class="num">Net profit</th><th class="num">Net margin</th></tr></thead><tbody><tr><td>Jul 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">5,120.00</td><td class="num neg">-59.00</td><td class="num">232.00</td><td class="num">4,829.00</td><td class="num">2,317.60</td><td class="num">-1,156.51</td><td class="num">-211.59</td><td class="num">727.56</td><td class="num">70.24</td><td class="num pos">1,168.87</td><td class="num pos">288.11</td><td class="num">5.97%</td></tr><tr><td>Jul 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">5,234.00</td><td class="num neg">0.00</td><td class="num">228.00</td><td class="num">5,006.00</td><td class="num">2,766.54</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">2,239.46</td><td class="num pos">2,239.46</td><td class="num">44.74%</td></tr><tr><td>Jun 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">2,821.00</td><td class="num neg">-475.00</td><td class="num">111.71</td><td class="num">2,234.29</td><td class="num">861.56</td><td class="num">-568.31</td><td class="num">-371.77</td><td class="num">643.73</td><td class="num">38.51</td><td class="num pos">462.24</td><td class="num neg">-220.00</td><td class="num">-9.85%</td></tr><tr><td>Jun 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">6,419.00</td><td class="num neg">-306.00</td><td class="num">247.29</td><td class="num">5,865.71</td><td class="num">2,893.20</td><td class="num">-578.64</td><td class="num">-1,405.60</td><td class="num">899.47</td><td class="num">0.00</td><td class="num pos">1,329.13</td><td class="num pos">429.66</td><td class="num">7.33%</td></tr><tr><td>May 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">3,786.30</td><td class="num neg">-127.00</td><td class="num">174.25</td><td class="num">3,485.05</td><td class="num">1,880.03</td><td class="num">-599.72</td><td class="num">-279.86</td><td class="num">371.93</td><td class="num">36.43</td><td class="num pos">740.13</td><td class="num pos">331.77</td><td class="num">9.52%</td></tr><tr><td>May 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">5,033.00</td><td class="num neg">0.00</td><td class="num">229.29</td><td class="num">4,803.71</td><td class="num">1,492.05</td><td class="num">-380.70</td><td class="num">-1,059.90</td><td class="num">486.61</td><td class="num">0.00</td><td class="num pos">2,101.87</td><td class="num pos">1,931.43</td><td class="num">40.21%</td></tr><tr><td>Apr 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">1,779.10</td><td class="num neg">-204.50</td><td class="num">74.98</td><td class="num">1,499.62</td><td class="num">590.82</td><td class="num">-367.95</td><td class="num">-75.61</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">489.46</td><td class="num pos">489.46</td><td class="num">32.64%</td></tr><tr><td>Apr 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">5,309.00</td><td class="num neg">0.00</td><td class="num">173.38</td><td class="num">5,135.62</td><td class="num">2,044.86</td><td class="num">-557.89</td><td class="num">-1,410.75</td><td class="num">376.81</td><td class="num">0.00</td><td class="num pos">1,531.19</td><td class="num pos">1,154.38</td><td class="num">22.48%</td></tr><tr><td>Apr 26</td><td><span class="pill p-manual">Website</span></td><td class="num">594.00</td><td class="num neg">0.00</td><td class="num">28.29</td><td class="num">565.71</td><td class="num">190.20</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">375.51</td><td class="num pos">375.51</td><td class="num">66.38%</td></tr><tr><td>Mar 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">750.00</td><td class="num neg">0.00</td><td class="num">35.71</td><td class="num">714.29</td><td class="num">175.52</td><td class="num">-191.00</td><td class="num">-58.81</td><td class="num">62.15</td><td class="num">7.44</td><td class="num pos">296.63</td><td class="num pos">227.04</td><td class="num">31.78%</td></tr><tr><td>Mar 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">3,744.00</td><td class="num neg">-389.00</td><td class="num">103.00</td><td class="num">3,252.00</td><td class="num">1,329.07</td><td class="num">-329.92</td><td class="num">-763.91</td><td class="num">110.87</td><td class="num">0.00</td><td class="num pos">1,022.52</td><td class="num pos">911.65</td><td class="num">28.03%</td></tr><tr><td>Feb 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">2,747.00</td><td class="num neg">-1,180.00</td><td class="num">74.62</td><td class="num">1,492.38</td><td class="num">502.80</td><td class="num">-130.54</td><td class="num">-91.89</td><td class="num">266.21</td><td class="num">0.00</td><td class="num pos">738.90</td><td class="num pos">472.69</td><td class="num">31.67%</td></tr><tr><td>Feb 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">2,983.00</td><td class="num neg">0.00</td><td class="num">120.76</td><td class="num">2,862.24</td><td class="num">1,185.56</td><td class="num">-311.98</td><td class="num">-772.13</td><td class="num">289.15</td><td class="num">0.00</td><td class="num pos">777.32</td><td class="num pos">488.17</td><td class="num">17.06%</td></tr><tr><td>Feb 26</td><td><span class="pill p-manual">Website</span></td><td class="num">2,261.00</td><td class="num neg">0.00</td><td class="num">107.67</td><td class="num">2,153.33</td><td class="num">1,076.58</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">1,076.75</td><td class="num pos">1,076.75</td><td class="num">50.00%</td></tr><tr><td>Jan 26</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">375.00</td><td class="num neg">-89.00</td><td class="num">13.62</td><td class="num">272.38</td><td class="num">138.53</td><td class="num">-9.34</td><td class="num">-114.47</td><td class="num">199.27</td><td class="num">0.00</td><td class="num pos">30.04</td><td class="num neg">-169.23</td><td class="num">-62.13%</td></tr><tr><td>Jan 26</td><td><span class="pill p-noon">Noon</span></td><td class="num">3,977.00</td><td class="num neg">0.00</td><td class="num">147.76</td><td class="num">3,829.24</td><td class="num">1,730.43</td><td class="num">-628.15</td><td class="num">-784.34</td><td class="num">300.76</td><td class="num">0.00</td><td class="num pos">882.81</td><td class="num pos">582.05</td><td class="num">15.20%</td></tr><tr><td>Dec 25</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">109.00</td><td class="num neg">0.00</td><td class="num">5.19</td><td class="num">103.81</td><td class="num">0.00</td><td class="num">-12.50</td><td class="num">-16.80</td><td class="num">0.00</td><td class="num">0.00</td><td class="num pos">84.51</td><td class="num pos">84.51</td><td class="num">81.41%</td></tr><tr><td>Nov 25</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">384.30</td><td class="num neg">0.00</td><td class="num">18.30</td><td class="num">366.00</td><td class="num">0.00</td><td class="num">-43.14</td><td class="num">-16.28</td><td class="num">177.44</td><td class="num">0.00</td><td class="num pos">315.13</td><td class="num pos">137.69</td><td class="num">37.62%</td></tr><tr><td>Oct 25</td><td><span class="pill p-amazon">Amazon</span></td><td class="num">0.00</td><td class="num neg">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">223.41</td><td class="num">0.00</td><td class="num pos">0.00</td><td class="num neg">-223.41</td><td class="num">0.00%</td></tr></tbody></table></div></div></div>
     </section>
@@ -16652,6 +16653,48 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
     </section>
 
     <!-- ============ EXPORT ============ -->
+    <section class="view" id="view-calc">
+      <div class="head"><div><div class="eyebrow">Tools</div><h1>Profit calculator</h1><p>Scan a barcode to pull its cost price, then work out margin from a sale price — or the sale price needed for a target margin.</p></div></div>
+      <div class="fin-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start">
+        <div class="panel">
+          <div class="panel-h"><div><h3>Item</h3><div class="fin-note">Cost price fills in from Product setup — edit it if this batch differs.</div></div></div>
+          <div class="panel-b">
+            <div class="frow"><label>Barcode</label><input class="inp" id="calcBar" list="calcBarList" placeholder="Scan or type a barcode" autocomplete="off"><datalist id="calcBarList"></datalist></div>
+            <div class="fin-note" id="calcProdName" style="margin:-6px 0 12px">No product matched — enter the cost price manually.</div>
+            <div class="frow"><label>Cost price (per pc)</label><input class="inp" id="calcCp" type="number" step="0.01" min="0" value="0"></div>
+            <div class="frow"><label>Qty</label><input class="inp" id="calcQty" type="number" step="1" min="1" value="1"></div>
+            <div class="frow"><label>Platform</label><select class="inp" id="calcPlatform"><option value="noon">Noon</option><option value="amazon">Amazon</option><option value="website">Website</option><option value="custom">Custom</option></select></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><div><h3>Fees</h3><div class="fin-note">Platform defaults load automatically. Override any of them.</div></div><button class="btn btn-ghost btn-sm" id="calcResetFees">Reset to platform default</button></div>
+          <div class="panel-b">
+            <div class="frow"><label>Commission % of sale</label><input class="inp" id="calcComm" type="number" step="0.1" min="0" value="14"></div>
+            <div class="frow"><label>Delivery fee (flat, per order)</label><input class="inp" id="calcDel" type="number" step="0.01" min="0" value="20"></div>
+            <div class="frow"><label>VAT %</label><input class="inp" id="calcVat" type="number" step="0.1" min="0" value="5"></div>
+            <label style="display:flex;gap:8px;align-items:center;cursor:pointer;margin:4px 0 10px"><input type="checkbox" id="calcUseOpt"><span>Add ads / other costs</span></label>
+            <div id="calcOptFees" style="display:none">
+              <div class="frow"><label>Ads / advertising % of sale</label><input class="inp" id="calcAds" type="number" step="0.1" min="0" value="1"></div>
+              <div class="frow"><label>Other cost per order</label><input class="inp" id="calcOther" type="number" step="0.01" value="0"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-h"><div><h3>Price or margin</h3><div class="fin-note">Fill in one — the other is calculated.</div></div></div>
+          <div class="panel-b">
+            <div class="seg" id="calcMode" style="margin-bottom:14px"><button type="button" class="on" data-calc-mode="price">I know the sale price</button><button type="button" data-calc-mode="margin">I want a target margin</button></div>
+            <div class="seg" id="calcPriceBasis" style="margin-bottom:12px"><button type="button" class="on" data-calc-basis="pc">Price per pc</button><button type="button" data-calc-basis="total">Total sale price</button></div><div class="frow" id="calcPriceRow"><label id="calcPriceLabel">Sale price (per pc, VAT incl.)</label><input class="inp" id="calcPrice" type="number" step="0.01" min="0" value="0"></div>
+            <div class="frow" id="calcMarginRow" style="display:none"><label>Target net margin %</label><input class="inp" id="calcTargetMargin" type="number" step="0.1" value="20"></div>
+            <div class="fin-note">Margin is net profit ÷ sales excluding VAT — the same definition the Dashboard and CEO Report use.</div>
+          </div>
+        </div>
+      </div>
+      <div class="fin-grid" id="calcKpis" style="margin-top:18px"></div>
+      <div class="panel" style="margin-top:18px">
+        <div class="panel-h"><div><h3>Breakdown</h3><div class="fin-note" id="calcBreakNote">For the full order quantity.</div></div></div>
+        <div class="panel-b" style="padding:0"><div class="tbl-wrap"><table class="compact-table" id="calcTable"></table></div></div>
+      </div>
+    </section>
     <section class="view" id="view-export">
       <div class="head"><div><div class="eyebrow">Report</div><h1>Export</h1><p>Filter sales and finance rows, preview the table, then download an Excel file.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost" id="expExport">⬇ Detail Excel</button><button class="btn btn-pri" id="expExportPivot">⬇ Pivot Excel</button><button class="btn btn-ghost" id="expDailyReport">⬇ Daily Report</button></div></div>
       <div class="filterbar" style="margin-bottom:18px">
@@ -17703,6 +17746,7 @@ document.querySelectorAll(".navbtn").forEach(b=>b.addEventListener("click",()=>{
   if(b.dataset.view==="dash")renderDash();
   if(b.dataset.view==="records")renderRecords();
   if(b.dataset.view==="export")renderExport();
+  if(b.dataset.view==="calc")renderCalc();
   if(b.dataset.view==="target")renderTarget();
   if(["barcodes","productsetup"].includes(b.dataset.view))renderSetup();
   if(b.dataset.view==="warehouses")renderWarehouses();
@@ -19736,11 +19780,13 @@ function renderDash(){
   const expenseCalcParts=["Platform "+dashMoney(platformFees),"Ads "+dashMoney(adsExpense),"Warehouse "+dashMoney(warehouseExpense),"Other "+dashMoney(otherOverheadExpense)];
   const trend={};const trendAdd=(date,key,value)=>{const d=String(date||"").slice(0,10),bucket=dashTrendBucket(d);if(!bucket)return;const row=trend[bucket]||(trend[bucket]={key:bucket,gross:0,ads:0,startDate:d,endDate:d});row[key]+=value;if(d<row.startDate)row.startDate=d;if(d>row.endDate)row.endDate=d;};
   fo.forEach(o=>trendAdd(o.date,"gross",orderTotals(o).amount));
-  fin.filter(e=>e.scope==="overhead").forEach(e=>trendAdd(e.date,"ads",-nnum(e.overhead)));
+  // Ads only. This line used to take every overhead entry (warehouse + other overhead too),
+  // which made the chart and Gross Revenue Summary disagree with the CEO report's Marketing column.
+  fin.filter(e=>e.scope==="overhead"&&e.category==="ads").forEach(e=>trendAdd(e.date,"ads",-nnum(e.overhead)));
   const trendRows=Object.values(trend).sort((a,b)=>a.key.localeCompare(b.key)).map(r=>({...r,afterAds:r.gross-r.ads}));
   document.getElementById("dashTrendIncome").textContent="Gross "+fmt(amount);
-  document.getElementById("dashTrendAds").textContent="Ads "+fmt(overheadExpense);
-  document.getElementById("dashRevenueSummary").innerHTML=dashRevenueSummaryHtml(trendRows,amount,overheadExpense);
+  document.getElementById("dashTrendAds").textContent="Ads "+fmt(adsExpense);
+  document.getElementById("dashRevenueSummary").innerHTML=dashRevenueSummaryHtml(trendRows,amount,adsExpense);
   const cards=[];
   cards.push(dashKpi("Total orders",String(fo.length),qty+" pieces sold","k-info"));
   cards.push(dashKpi("Total qty",String(qty),"across "+fo.length+" orders",""));
@@ -20808,6 +20854,7 @@ function filteredMonthlyFinance(){
   return all.filter(r=>(platform==="all"||r.platform===platform)&&(month==="all"||r.month===month));
 }
 function renderInsights(){
+  renderCeoMonthPicker();
   const table=document.getElementById("insightTable");if(!table)return;const rows=filteredMonthlyFinance();
   document.getElementById("insightKpis").innerHTML=finCard("Periods",String(rows.length),"filtered month / platform rows")+
     finCard("Net sales",moneyTotal(rows,"netSales"),"after refunds and VAT")+
@@ -21421,6 +21468,30 @@ function newReportSkuCount(month,country){
   orders.filter(o=>(o.date||"").slice(0,7)===month&&(country==="All"||normalizeMarket(o.country)===country)).forEach(o=>(o.lines||[]).forEach(l=>{const bc=String(l.barcode||"").trim().toLowerCase();if(bc)set.add(bc);}));
   return set.size;
 }
+/* Months to include in the New CEO Report. Unticked months are skipped entirely
+   (e.g. the current month before it has closed). Stored so the choice survives a reload. */
+const CEO_MONTHS_KEY="ceoReportExcludedMonths";
+function ceoExcludedMonths(){
+  try{const v=JSON.parse(localStorage.getItem(CEO_MONTHS_KEY)||"[]");return Array.isArray(v)?v:[];}catch(e){return [];}
+}
+function ceoReportSelectedMonths(){
+  const ex=ceoExcludedMonths();
+  return ceoReportMonths().filter(m=>!ex.includes(m));
+}
+function renderCeoMonthPicker(){
+  const box=document.getElementById("ceoMonthsList");if(!box)return;
+  const months=ceoReportMonths().slice().reverse(),ex=ceoExcludedMonths();
+  box.innerHTML=months.length
+    ?'<div class="fin-note" style="margin-bottom:8px">Ticked months go into the New CEO Report.</div>'+
+      months.map(m=>'<label style="display:flex;gap:8px;align-items:center;padding:3px 0;cursor:pointer"><input type="checkbox" data-ceo-month="'+m+'"'+(ex.includes(m)?"":" checked")+'><span>'+esc(monthLabel(m))+'</span></label>').join("")
+    :'<div class="fin-note">No months with data yet.</div>';
+}
+document.addEventListener("change",e=>{
+  const cb=e.target.closest("[data-ceo-month]");if(!cb)return;
+  const m=cb.dataset.ceoMonth,ex=ceoExcludedMonths().filter(x=>x!==m);
+  if(!cb.checked)ex.push(m);
+  localStorage.setItem(CEO_MONTHS_KEY,JSON.stringify(ex));
+});
 async function buildNewCeoReportWorkbook(){
   const wb=new ExcelJS.Workbook();
   await wb.xlsx.load(newCeoBase64ToArrayBuffer(NEW_CEO_TEMPLATE_B64));
@@ -21429,13 +21500,18 @@ async function buildNewCeoReportWorkbook(){
   let targetYear=null;
   orders.forEach(o=>{const y=Number((o.date||"").slice(0,4));if(y&&(!targetYear||y>targetYear))targetYear=y;});
   if(!targetYear)targetYear=new Date().getFullYear();
-  const allMonthsPresent=ceoReportMonths();
-  const pctCols=[4,10,15,16,18],moneyCols=[2,3,5,6,7,8,9,17];
+  const allMonthsPresent=ceoReportSelectedMonths();
+  const NEW_CEO_HEADERS=["Sale Revenue","Gross Profit","Gross Margin","COGS","VAT","All Expense","Marketing","Credit","Net Profit","Net Margin","Number of Order","Number of SKU Sold","Number of Pc","Return Order","Return Order Rate","Compare Last Month","Target","Acheievement"];
+  const pctCols=[4,11,16,17,19],moneyCols=[2,3,5,6,7,8,9,10,18];
   ["All","UAE","KSA"].forEach(country=>{
     const ws=wb.getWorksheet(sheetMap[country]);if(!ws)return;
     if(country!=="All")ws.name=labelMap[country];
-    ws.getRow(1).getCell(13).value="Number of Pc"; // was "New Listing" in the template
+    // The template stops at column R and has no VAT column: rewrite the whole header row so
+    // VAT sits in F and everything after it shifts one column right (through S).
+    for(let c=2;c<=19;c++)ws.getRow(1).getCell(c).value=NEW_CEO_HEADERS[c-2];
+    ws.getRow(1).commit();
     let prevActual=null;
+    const totals={revenue:0,grossProfit:0,salesExVat:0,cogs:0,vat:0,allExpense:0,marketing:0,credit:0,netProfit:0,orders:0,pieces:0,returns:0,target:0,months:0};
     for(let m=1;m<=12;m++){
       const mm=String(m).padStart(2,"0"),monthKey=targetYear+"-"+mm,row=ws.getRow(m+1);
       const hasData=allMonthsPresent.includes(monthKey);
@@ -21444,13 +21520,41 @@ async function buildNewCeoReportWorkbook(){
       const skus=newReportSkuCount(monthKey,country),piecesSold=newReportPiecesSold(monthKey,country),returns=newReportReturns(monthKey,country);
       const returnRate=s.orders?returns/s.orders:null,target=targetFor(monthKey,country),achievement=target?s.grossIncl/target:null;
       const compareLastMonth=prevActual!=null&&prevActual!==0?((s.grossIncl-prevActual)/Math.abs(prevActual)):null;
-      const vals=[Math.round(s.grossIncl*100)/100,Math.round(s.grossProfit*100)/100,s.grossMargin==null?null:Math.round(s.grossMargin*10000)/10000,Math.round(s.cogs*100)/100,Math.round(s.allExpense*100)/100,Math.round(s.marketing*100)/100,Math.round(s.credit*100)/100,Math.round(s.netProfit*100)/100,s.netMargin==null?null:Math.round(s.netMargin*10000)/10000,s.orders,skus,piecesSold,returns,returnRate==null?null:Math.round(returnRate*10000)/10000,compareLastMonth==null?null:Math.round(compareLastMonth*10000)/10000,target==null?null:target,achievement==null?null:Math.round(achievement*10000)/10000];
-      for(let c=2;c<=18;c++){
+      const vat=s.grossIncl-s.salesExVat;
+      const vals=[Math.round(s.grossIncl*100)/100,Math.round(s.grossProfit*100)/100,s.grossMargin==null?null:Math.round(s.grossMargin*10000)/10000,Math.round(s.cogs*100)/100,Math.round(vat*100)/100,Math.round(s.allExpense*100)/100,Math.round(s.marketing*100)/100,Math.round(s.credit*100)/100,Math.round(s.netProfit*100)/100,s.netMargin==null?null:Math.round(s.netMargin*10000)/10000,s.orders,skus,piecesSold,returns,returnRate==null?null:Math.round(returnRate*10000)/10000,compareLastMonth==null?null:Math.round(compareLastMonth*10000)/10000,target==null?null:target,achievement==null?null:Math.round(achievement*10000)/10000];
+      for(let c=2;c<=19;c++){
         const cell=row.getCell(c);cell.value=vals[c-2];
         if(pctCols.includes(c))cell.numFmt="0.0%";else if(moneyCols.includes(c))cell.numFmt="#,##0.00";
       }
       row.commit();
+      totals.months++;
+      totals.revenue+=s.grossIncl;totals.grossProfit+=s.grossProfit;totals.salesExVat+=s.salesExVat;
+      totals.cogs+=s.cogs;totals.vat+=vat;totals.allExpense+=s.allExpense;totals.marketing+=s.marketing;
+      totals.credit+=s.credit;totals.netProfit+=s.netProfit;totals.orders+=s.orders;
+      totals.pieces+=piecesSold;totals.returns+=returns;totals.target+=(target||0);
       prevActual=s.grossIncl;
+    }
+    // Year total on row 15 (row 14 left blank as a separator). Margins and rates are
+    // recomputed from the totals, not averaged; SKU count is left blank because summing
+    // monthly distinct-SKU counts would double-count anything sold in more than one month.
+    if(totals.months){
+      const tRow=ws.getRow(15);
+      tRow.getCell(1).value="Total";
+      const tGrossMargin=totals.salesExVat?totals.grossProfit/totals.salesExVat:null;
+      const tNetMargin=totals.salesExVat?totals.netProfit/totals.salesExVat:null;
+      const tReturnRate=totals.orders?totals.returns/totals.orders:null;
+      const tAchievement=totals.target?totals.revenue/totals.target:null;
+      const r2=n=>Math.round(n*100)/100,r4=n=>n==null?null:Math.round(n*10000)/10000;
+      const tVals=[r2(totals.revenue),r2(totals.grossProfit),r4(tGrossMargin),r2(totals.cogs),r2(totals.vat),
+        r2(totals.allExpense),r2(totals.marketing),r2(totals.credit),r2(totals.netProfit),r4(tNetMargin),
+        totals.orders,null,totals.pieces,totals.returns,r4(tReturnRate),null,
+        totals.target?r2(totals.target):null,r4(tAchievement)];
+      for(let c=2;c<=19;c++){
+        const cell=tRow.getCell(c);cell.value=tVals[c-2];
+        if(pctCols.includes(c))cell.numFmt="0.0%";else if(moneyCols.includes(c))cell.numFmt="#,##0.00";
+      }
+      tRow.font={bold:true};
+      tRow.commit();
     }
   });
   return await wb.xlsx.writeBuffer();
@@ -21474,6 +21578,142 @@ async function generateNewCeoReportExcel(){
     btn.disabled=false;btn.textContent=oldLabel;
   }
 }
+
+/* ================= PROFIT CALCULATOR ================= */
+/* Standalone what-if tool: nothing here is saved to orders or products. Fee defaults are
+   typical marketplace rates — the user is expected to override them per deal. */
+const CALC_PLATFORM_DEFAULTS={
+  noon:{comm:14,ads:1,del:20,vat:5},
+  amazon:{comm:14,ads:1,del:20,vat:5},
+  website:{comm:0,ads:0,del:0,vat:5},
+  custom:{comm:0,ads:0,del:0,vat:5}
+};
+let calcMode="price",calcBasis="pc"; // calcBasis: is the sale price box per piece or for the whole order?
+function calcNum(id){return Number(document.getElementById(id).value)||0;}
+function calcApplyPlatformDefaults(){
+  const d=CALC_PLATFORM_DEFAULTS[document.getElementById("calcPlatform").value]||CALC_PLATFORM_DEFAULTS.custom;
+  document.getElementById("calcComm").value=d.comm;
+  document.getElementById("calcAds").value=d.ads;
+  document.getElementById("calcDel").value=d.del;
+  document.getElementById("calcVat").value=d.vat;
+}
+function calcFillBarcodeList(){
+  const dl=document.getElementById("calcBarList");if(!dl)return;
+  dl.innerHTML=products.slice(0,800).map(p=>'<option value="'+esc(p.barcode||"")+'">'+esc(p.title||"")+'</option>').join("");
+}
+function calcLookupProduct(){
+  const bar=document.getElementById("calcBar").value;
+  const p=productByBarcode(bar);
+  const note=document.getElementById("calcProdName");
+  if(p){
+    document.getElementById("calcCp").value=Number(p.cp)||0;
+    note.innerHTML="<b>"+esc(p.title||"(untitled)")+"</b> · cost price pulled from Product setup";
+  }else{
+    note.textContent=bar.trim()?"No product matched that barcode — enter the cost price manually.":"No product matched — enter the cost price manually.";
+  }
+  renderCalc();
+}
+// Everything is per whole order: sale price and cost price are per piece, delivery and
+// "other" are flat per order. Commission and ads are charged on the VAT-inclusive sale value.
+function calcCompute(){
+  const qty=Math.max(1,calcNum("calcQty")),cp=calcNum("calcCp");
+  const useOpt=document.getElementById("calcUseOpt").checked; // ads/other are off unless asked for
+  const comm=calcNum("calcComm")/100,vatRate=calcNum("calcVat")/100;
+  const ads=useOpt?calcNum("calcAds")/100:0;
+  const del=calcNum("calcDel"),other=useOpt?calcNum("calcOther"):0;
+  const cogs=cp*qty,fixed=del+other;
+  let unitPrice;
+  if(calcMode==="margin"){
+    const m=calcNum("calcTargetMargin")/100;
+    const denom=(1-m)/(1+vatRate)-(comm+ads);
+    // denom <= 0 means fees alone eat the whole sale: no price can reach that margin
+    unitPrice=denom>0?((cogs+fixed)/denom)/qty:null;
+  }else{
+    const entered=calcNum("calcPrice");
+    unitPrice=calcBasis==="total"?entered/qty:entered;
+  }
+  const revenue=unitPrice==null?null:unitPrice*qty;
+  if(revenue==null)return{qty,cp,cogs,del,other,impossible:true};
+  const netSales=revenue/(1+vatRate),vat=revenue-netSales;
+  const commission=revenue*comm,adsCost=revenue*ads;
+  const grossProfit=netSales-cogs;
+  const netProfit=netSales-cogs-commission-adsCost-fixed;
+  const netMargin=netSales?netProfit/netSales:null;
+  const grossMargin=netSales?grossProfit/netSales:null;
+  // Break-even = the sale price where net profit is exactly zero.
+  const beDenom=1/(1+vatRate)-(comm+ads);
+  const breakEven=beDenom>0?((cogs+fixed)/beDenom)/qty:null;
+  return{qty,cp,cogs,unitPrice,revenue,netSales,vat,commission,adsCost,del,other,fixed,grossProfit,grossMargin,netProfit,netMargin,breakEven,perPc:netProfit/qty};
+}
+function renderCalc(){
+  const kpis=document.getElementById("calcKpis"),tbl=document.getElementById("calcTable");
+  if(!kpis||!tbl)return;
+  calcFillBarcodeList();
+  const r=calcCompute();
+  if(r.impossible){
+    kpis.innerHTML=finCard("Sale price","—","target margin unreachable")+finCard("Net profit","—","")+finCard("Net margin","—","")+finCard("Break-even price","—","");
+    tbl.innerHTML='<tbody><tr><td class="empty"><b>That margin can\u2019t be reached</b>Commission + ads + VAT already take more than 100% of the sale. Lower the target margin or the fees.</td></tr></tbody>';
+    return;
+  }
+  if(calcMode==="margin"){
+    const back=r.unitPrice?(calcBasis==="total"?r.unitPrice*r.qty:r.unitPrice):0;
+    document.getElementById("calcPrice").value=Math.round(back*100)/100;
+  }
+  const marginTxt=r.netMargin==null?"—":(r.netMargin*100).toFixed(1)+"%";
+  kpis.innerHTML=
+    finCard("Sale price / pc",fmt(r.unitPrice),"VAT incl. \u00b7 total "+fmt(r.revenue))+
+    finCard("Net profit",fmt(r.netProfit),fmt(r.perPc)+" per pc",r.netProfit>=0?"pos":"neg")+
+    finCard("Net margin",marginTxt,"of sales ex VAT",r.netProfit>=0?"pos":"neg")+
+    finCard("Gross margin",r.grossMargin==null?"—":(r.grossMargin*100).toFixed(1)+"%","before platform fees")+
+    finCard("Break-even price",r.breakEven==null?"\u2014":fmt(r.breakEven),r.breakEven==null?"zero profit":"per pc \u00b7 total "+fmt(r.breakEven*r.qty));
+  document.getElementById("calcBreakNote").textContent="For all "+r.qty+" pc"+(r.qty===1?"":"s")+" in the order.";
+  const row=(label,val,cls,note)=>'<tr><td>'+esc(label)+(note?'<div class="fin-note">'+esc(note)+'</div>':'')+'</td><td class="num '+(cls||"")+'">'+fmt(val)+'</td></tr>';
+  tbl.innerHTML='<thead><tr><th>Line</th><th class="num">Amount</th></tr></thead><tbody>'+
+    row("Sale revenue (VAT incl.)",r.revenue)+
+    row("VAT",-r.vat,"neg")+
+    row("Net sales (ex VAT)",r.netSales)+
+    row("Product cost",-r.cogs,"neg",fmt(r.cp)+" \u00d7 "+r.qty+" pc")+
+    row("Gross profit",r.grossProfit,r.grossProfit>=0?"pos":"neg")+
+    row("Commission",-r.commission,"neg")+
+    (r.adsCost?row("Ads / advertising",-r.adsCost,"neg"):"")+
+    row("Delivery",-r.del,"neg")+
+    (r.other?row("Other",-r.other,"neg"):"")+
+    row("Net profit",r.netProfit,r.netProfit>=0?"pos":"neg")+
+    '</tbody>';
+}
+document.getElementById("calcBar").addEventListener("change",calcLookupProduct);
+document.getElementById("calcBar").addEventListener("blur",calcLookupProduct);
+document.getElementById("calcPlatform").addEventListener("change",()=>{calcApplyPlatformDefaults();renderCalc();});
+document.getElementById("calcResetFees").addEventListener("click",()=>{calcApplyPlatformDefaults();renderCalc();toast("Fees reset to platform defaults.");});
+["calcCp","calcQty","calcComm","calcAds","calcDel","calcVat","calcOther","calcPrice","calcTargetMargin"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",renderCalc);
+});
+document.getElementById("calcUseOpt").addEventListener("change",e=>{
+  document.getElementById("calcOptFees").style.display=e.target.checked?"":"none";
+  renderCalc();
+});
+document.getElementById("calcPriceBasis").addEventListener("click",e=>{
+  const b=e.target.closest("[data-calc-basis]");if(!b)return;
+  const old=calcBasis,qty=Math.max(1,calcNum("calcQty")),box=document.getElementById("calcPrice");
+  document.getElementById("calcPriceBasis").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");calcBasis=b.dataset.calcBasis;
+  // Convert whatever is already typed so switching the basis doesn't silently change the deal
+  if(old!==calcBasis){
+    const v=Number(box.value)||0;
+    box.value=v?Math.round((calcBasis==="total"?v*qty:v/qty)*100)/100:0;
+  }
+  document.getElementById("calcPriceLabel").textContent=calcBasis==="total"?"Total sale price (all pcs, VAT incl.)":"Sale price (per pc, VAT incl.)";
+  renderCalc();
+});
+document.getElementById("calcMode").addEventListener("click",e=>{
+  const b=e.target.closest("[data-calc-mode]");if(!b)return;
+  document.getElementById("calcMode").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");calcMode=b.dataset.calcMode;
+  document.getElementById("calcPriceRow").style.display=calcMode==="margin"?"none":"";
+  document.getElementById("calcMarginRow").style.display=calcMode==="margin"?"":"none";
+  renderCalc();
+});
+
 function viewActive(id){const el=document.getElementById("view-"+id);return !!(el&&el.classList.contains("on"));}
 function renderFinanceAll(){refreshPlatformSelects();renderFinanceHistory();renderPayments();renderOrderPnl();renderRefunds();renderExpenses();renderInsights();if(viewActive("export"))renderExport();}
 async function previewFinanceFile(){
