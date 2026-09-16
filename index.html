@@ -19720,6 +19720,10 @@ function renderDash(){
     if(e.scope==="cash"||!inFilter(e.date,dashFilter,dashFrom,dashTo)||!inYear(e.date))return false;
     if(platform!=="all"&&e.platform!==platform)return false;
     if(dashCountrySet.size&&!dashCountrySet.has(e.country||"UAE"))return false;
+    // Overhead (ads / warehouse / other) is not an order-level cost. It used to be dropped
+    // whenever it carried an orderId whose order wasn't in the current filter - or no longer
+    // existed - which is why the ads total disagreed with the CEO report's Marketing column.
+    if(e.scope==="overhead")return !hasCustomerFilter;
     if(e.orderId)return orderIds.has(String(e.orderId));
     return !hasCustomerFilter;
   });
