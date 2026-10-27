@@ -22223,10 +22223,29 @@ const Cloud=(()=>{
   // Doing a .get() here on top of onSnapshot() would read every document
   // twice on every page load, which is what was burning through the daily
   // free-tier read quota with only 2 users.
+  // Orders pushed automatically by the Marketplace P&L sync arrive with stockPending:true.
+  // The first open page claims each one in a transaction (so two open pages never deduct twice)
+  // and deducts its stock exactly like a hand-entered order.
+  let stockClaimTimer=null;
+  function scheduleStockClaim(){clearTimeout(stockClaimTimer);stockClaimTimer=setTimeout(claimPendingStock,4000);}
+  async function claimPendingStock(){
+    if(!ready||!products.length)return;
+    const pending=orders.filter(o=>o&&o.stockPending&&!o.stockApplied);
+    for(const o of pending){
+      try{
+        const ref=db.collection("orders").doc(fbid(o.id));
+        const won=await db.runTransaction(async t=>{const d=await t.get(ref);const x=d.exists?d.data():null;if(!x||!x.stockPending||x.stockApplied)return false;t.update(ref,{stockPending:false,stockApplied:true});return true;});
+        if(!won)continue;
+        const local=orders.find(x=>x.id===o.id);
+        if(local){local.stockPending=false;local.stockApplied=true;applyOrderStock(local,-1);save();}
+      }catch(e){console.warn("stock claim",o.id,e);}
+    }
+    if(pending.length){renderRecords();renderDash();}
+  }
   function listen(){
     watch(db.collection("products"),s=>{products=s.docs.map(d=>d.data());dedupeLocal();save();renderSetup();renderWarehouses();renderAdd();refreshBarcodeLists();});
     watch(db.collection("customers"),s=>{customers=s.docs.map(d=>d.data());dedupeLocal();save();renderSetup();renderWarehouses();renderAdd();renderDash();});
-    watch(db.collection("orders"),s=>{orders=s.docs.map(d=>d.data());dedupeLocal();save();renderRecords();renderDash();renderFinanceAll();});
+    watch(db.collection("orders"),s=>{orders=s.docs.map(d=>d.data());dedupeLocal();save();renderRecords();renderDash();renderFinanceAll();scheduleStockClaim();});
     watch(db.collection("finance"),s=>{
       const map=new Map(financeEntries.filter(e=>e&&e.id).map(e=>[String(e.id),e]));
       const dead=new Set((deletedBatchIds||[]).map(String));
